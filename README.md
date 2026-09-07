@@ -6,21 +6,21 @@
 
 ## 核心原则
 
-- 原毕设目录（`C:\docm\stock_analysis\stock_xgboost_system`、`C:\docm\work\stock_xgboost_system`）保持不动，本仓库为独立工程。
+- 原毕设目录（`C:\docm\projects\misc\stock_xgboost_system`、`C:\docm\work\stock_xgboost_system`）保持不动，本仓库为独立工程。
 - LLM（后续阶段）不负责量化计算，只通过 Service/Tool Contract 调用 Quant Engine。
 - 所有 API 返回真实数据；无数据时返回结构化错误（`NoData` / `StockNotFound` / `ModelUnavailable` 等），**禁止** demo 假数据回退。
 - `strong_prob` 对应分类模型 recall 极低，仅作为辅助字段，不得表述为可靠上涨概率。
 
 ## 数据与模型来源（Phase 0 基线）
 
-- 行情数据：`C:\docm\stock_analysis\stock_xgboost_system\data\stock_system.db`（2020-01-02 ~ 2026-06-24，5208 只股票基础信息、154 万+ 日线记录、1043 只股票全量历史）。
+- 行情数据：`C:\docm\projects\misc\stock_xgboost_system\data\stock_system.db`（2020-01-02 ~ 2026-06-24，5208 只股票基础信息、154 万+ 日线记录、1043 只股票全量历史）。
 - 代码语义基线：`C:\docm\work\stock_xgboost_system`（含板块/流动性过滤、过拟合诊断、TopN 等最新逻辑）。
 - 模型基线：`C:\docm\work\stock_xgboost_system\models`（全 A 训练，Rank IC 0.0737 / Top20 +1.85%）。
 
 数据库与模型 pickle 不进入 Git，首次使用需从备份/原目录复制：
 
 ```powershell
-Copy-Item C:\docm\stock_analysis\stock_xgboost_system\data\stock_system.db data\
+Copy-Item C:\docm\projects\misc\stock_xgboost_system\data\stock_system.db data\
 Copy-Item C:\docm\work\stock_xgboost_system\models\* models\
 ```
 

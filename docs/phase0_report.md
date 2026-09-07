@@ -6,7 +6,7 @@
 
 ## 1. 项目
 
-- 新仓库路径：`C:\docm\stock_analysis\ai-finance-agent`
+- 新仓库路径：`C:\docm\projects\ai-finance-agent`
 - Git 提交：
   - `6ce07a6` chore: initialize ai-finance-agent repository
   - `ee0ec1d` fix: strict api semantics, as_of factor join, test fixtures, consistency compare
@@ -17,7 +17,7 @@
 
 ## 2. 备份
 
-备份目录：`C:\docm\stock_analysis\_phase0_backup_20260907_130131`
+备份目录：`C:\docm\projects\misc\_phase0_backup_20260907_130131`
 
 | 内容 | 位置 | 大小 | SHA256 |
 | --- | --- | --- | --- |
