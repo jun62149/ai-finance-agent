@@ -10,9 +10,7 @@
 - Git 提交：
   - `6ce07a6` chore: initialize ai-finance-agent repository
   - `ee0ec1d` fix: strict api semantics, as_of factor join, test fixtures, consistency compare
-  - `6821962` docs: add Phase 0 verification report
-  - `4aef190` docs: add Phase 0 verification report
-  - `1600483` docs: fix commit references in Phase 0 report（HEAD）
+  - `6821962+` docs: add/fix Phase 0 verification report（含本文档修订；最新 HEAD 以 `git log` 为准）
 - Python 环境：仓库内 `.venv`，Python 3.12.13（`py -3.12 -m venv .venv`）
 - 主要依赖：fastapi 0.141.1、uvicorn、pydantic 2、pandas 3.0.5、numpy、scikit-learn、xgboost 3.4.1、joblib、pytest、httpx
 - 模型版本标识：`xgb-b-20260625-fulla`
