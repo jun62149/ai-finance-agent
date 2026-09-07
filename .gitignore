@@ -1,0 +1,29 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Env & secrets
+.env
+
+# Logs
+*.log
+logs/
+
+# Databases (large binaries, restored locally)
+data/*.db
+data/**/*.db
+data/*.db-journal
+data/**/*.db-journal
+
+# Trained model binaries
+models/*.pkl
+models/**/*.pkl
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

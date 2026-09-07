@@ -1,0 +1,13 @@
+[
+  "ret_5d",
+  "ret_10d",
+  "ret_20d",
+  "ma5_bias",
+  "ma20_bias",
+  "volatility_10d",
+  "volatility_20d",
+  "volume_ratio_5d",
+  "amount_mean_20d",
+  "turnover_mean_20d",
+  "drawdown_20d"
+]

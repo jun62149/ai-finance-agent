@@ -1,0 +1,92 @@
+{
+  "device": "cuda",
+  "regressor_metrics": {
+    "mae": 0.0429,
+    "rmse": 0.0666,
+    "rank_ic": 0.0737,
+    "top20_avg_return": 1.85
+  },
+  "classifier_metrics": {
+    "accuracy": 0.6989,
+    "precision": 0.3908,
+    "recall": 0.0005,
+    "f1": 0.0009
+  },
+  "train_regressor_metrics": {
+    "mae": 0.0441,
+    "rmse": 0.0663,
+    "rank_ic": 0.1214,
+    "top20_avg_return": 2.87
+  },
+  "test_regressor_metrics": {
+    "mae": 0.0429,
+    "rmse": 0.0666,
+    "rank_ic": 0.0737,
+    "top20_avg_return": 1.85
+  },
+  "train_classifier_metrics": {
+    "accuracy": 0.6946,
+    "precision": 0.7028,
+    "recall": 0.004,
+    "f1": 0.0079
+  },
+  "test_classifier_metrics": {
+    "accuracy": 0.6989,
+    "precision": 0.3908,
+    "recall": 0.0005,
+    "f1": 0.0009
+  },
+  "overfit_diagnostics": {
+    "level": "low",
+    "message": "训练集与测试集差距相对可控，暂未发现严重过拟合。",
+    "rmse_gap_pct": 0.45,
+    "rank_ic_gap": 0.0477,
+    "f1_gap": 0.007
+  },
+  "feature_importance": [
+    {
+      "name": "ma20_bias",
+      "value": 0.1349
+    },
+    {
+      "name": "turnover_mean_20d",
+      "value": 0.1143
+    },
+    {
+      "name": "volume_ratio_5d",
+      "value": 0.1123
+    },
+    {
+      "name": "ret_20d",
+      "value": 0.1045
+    },
+    {
+      "name": "ma5_bias",
+      "value": 0.0898
+    },
+    {
+      "name": "drawdown_20d",
+      "value": 0.0894
+    },
+    {
+      "name": "amount_mean_20d",
+      "value": 0.0823
+    },
+    {
+      "name": "ret_5d",
+      "value": 0.0745
+    },
+    {
+      "name": "volatility_10d",
+      "value": 0.0709
+    },
+    {
+      "name": "volatility_20d",
+      "value": 0.068
+    },
+    {
+      "name": "ret_10d",
+      "value": 0.0591
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+"""SQLite access layer, migrated unchanged from the legacy B codebase.
+
+Schema and upsert semantics intentionally match the graduation project so the
+Quant Engine remains byte-for-byte reproducible on the same data.
+"""
+
+from __future__ import annotations
+
+import sqlite3
+from contextlib import contextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import Iterator
+
+import pandas as pd
+
+from app.config import Config
+from app.log import ensure_dirs
+
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS stock_basic (
+    stock_code TEXT PRIMARY KEY,
+    stock_name TEXT,
+    market TEXT,
+    list_date TEXT,
+    is_active INTEGER DEFAULT 1,
+    updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS stock_daily (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    stock_code TEXT NOT NULL,
+    trade_date TEXT NOT NULL,
+    open REAL,
+    high REAL,
+    low REAL,
+    close REAL,
+    volume REAL,
+    amount REAL,
+    pct_change REAL,
+    turnover REAL,
+    source TEXT,
+    created_at TEXT,
+    UNIQUE(stock_code, trade_date)
+);
+
+CREATE TABLE IF NOT EXISTS factor_values (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    stock_code TEXT NOT NULL,
+    trade_date TEXT NOT NULL,
+    ret_5d REAL,
+    ret_10d REAL,
+    ret_20d REAL,
+    ma5 REAL,
+    ma10 REAL,
+    ma20 REAL,
+    ma5_bias REAL,
+    ma20_bias REAL,
+    volatility_10d REAL,
+    volatility_20d REAL,
+    volume_ratio_5d REAL,
+    amount_mean_20d REAL,
+    turnover_mean_20d REAL,
+    drawdown_20d REAL,
+    future_return_5d REAL,
+    future_excess_return_5d REAL,
+    strong_label INTEGER,
+    UNIQUE(stock_code, trade_date)
+);
+
+CREATE TABLE IF NOT EXISTS prediction_result (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trade_date TEXT NOT NULL,
+    stock_code TEXT NOT NULL,
+    stock_name TEXT,
+    pred_return_5d REAL,
+    strong_prob REAL,
+    risk_score REAL,
+    score REAL,
+    close REAL,
+    pct_change REAL,
+    board TEXT,
+    main_factor TEXT,
+    is_recommendable INTEGER DEFAULT 1,
+    created_at TEXT,
+    UNIQUE(trade_date, stock_code)
+);
+
+CREATE TABLE IF NOT EXISTS backtest_result (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trade_date TEXT NOT NULL UNIQUE,
+    top10_return REAL,
+    top10_return_before_cost REAL,
+    benchmark_return REAL,
+    excess_return REAL,
+    hit_rate REAL,
+    nav_model REAL,
+    nav_base REAL
+);
+"""
+
+
+def init_db() -> None:
+    ensure_dirs()
+    with connect() as conn:
+        conn.executescript(SCHEMA)
+        _ensure_column(conn, "prediction_result", "board", "TEXT")
+        _ensure_column(conn, "backtest_result", "top10_return_before_cost", "REAL")
+        _ensure_column(conn, "backtest_result", "top_n", "INTEGER")
+        _ensure_column(conn, "backtest_result", "include_growth", "INTEGER")
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, column_type: str) -> None:
+    columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
+
+
+@contextmanager
+def connect() -> Iterator[sqlite3.Connection]:
+    ensure_dirs()
+    conn = sqlite3.connect(Config.DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def read_sql(query: str, params: tuple | dict | None = None) -> pd.DataFrame:
+    init_db()
+    with connect() as conn:
+        return pd.read_sql_query(query, conn, params=params)
+
+
+def upsert_dataframe(df: pd.DataFrame, table: str, key_columns: list[str]) -> int:
+    if df.empty:
+        return 0
+
+    init_db()
+    rows = df.copy()
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if table == "stock_basic" and "updated_at" not in rows.columns:
+        rows["updated_at"] = now
+    if table in {"stock_daily", "prediction_result"} and "created_at" not in rows.columns:
+        rows["created_at"] = now
+
+    columns = list(rows.columns)
+    placeholders = ", ".join(["?"] * len(columns))
+    update_columns = [c for c in columns if c not in key_columns]
+    updates = ", ".join([f"{c}=excluded.{c}" for c in update_columns])
+    sql = (
+        f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders}) "
+        f"ON CONFLICT({', '.join(key_columns)}) DO UPDATE SET {updates}"
+    )
+
+    with connect() as conn:
+        conn.executemany(sql, rows[columns].itertuples(index=False, name=None))
+    return len(rows)
+
+
+def table_count(table: str) -> int:
+    init_db()
+    with connect() as conn:
+        row = conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()
+    return int(row["n"])
+
+
+def clear_table(table: str) -> None:
+    init_db()
+    with connect() as conn:
+        conn.execute(f"DELETE FROM {table}")
+
+
+def latest_trade_date() -> str:
+    init_db()
+    with connect() as conn:
+        row = conn.execute("SELECT MAX(trade_date) AS trade_date FROM stock_daily").fetchone()
+    return row["trade_date"] or "-"
+
+
+def database_exists() -> bool:
+    return Path(Config.DB_PATH).exists()
