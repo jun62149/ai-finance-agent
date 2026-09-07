@@ -39,6 +39,7 @@ def health() -> dict:
 
 @router.get("/stocks/{code}/factors", response_model=StockFactors)
 def get_stock_factors(code: str, as_of: date | None = Query(default=None)) -> StockFactors:
+    stock_service.get_stock_basic(code)
     row = stock_service.get_factor_row(code, _as_of_str(as_of))
     return StockFactors(**stock_service.factor_row_to_dict(row.iloc[0]))
 

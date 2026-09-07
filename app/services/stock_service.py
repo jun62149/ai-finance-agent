@@ -39,9 +39,12 @@ def get_factor_row(code: str, as_of: str | None = None) -> pd.DataFrame:
     """Return the latest factor row (<= as_of when given). Never falls back to latest."""
     code = validate_code(code)
     sql = """
-    SELECT f.*, b.stock_name, b.list_date, b.is_active
+    SELECT f.*, b.stock_name, b.list_date, b.is_active,
+           d.close AS close, d.pct_change AS pct_change
     FROM factor_values f
     LEFT JOIN stock_basic b ON f.stock_code = b.stock_code
+    LEFT JOIN stock_daily d
+        ON d.stock_code = f.stock_code AND d.trade_date = f.trade_date
     WHERE f.stock_code = ?
     """
     params: list = [code]

@@ -88,7 +88,7 @@ def test_empty_db_returns_nodata_never_fake(tmp_path, monkeypatch):
     client = TestClient(app)
     resp = client.get(f"/api/stocks/{STOCK_A}/factors")
     assert resp.status_code == 404
-    assert resp.json()["detail"]["code"] == "NoData"
+    assert resp.json()["detail"]["code"] in {"NoData", "StockNotFound"}
 
     resp = client.get("/api/stocks/ranking")
     assert resp.status_code == 404
