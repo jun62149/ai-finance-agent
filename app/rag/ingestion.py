@@ -12,11 +12,14 @@ keeping one copy per tagged stock makes stock_code-filtered retrieval work.
 from __future__ import annotations
 
 import hashlib
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Any, Callable, Iterable
 
 from app.db import (
+    existing_announcement_keys,
     existing_content_hashes,
     insert_chunks,
     insert_documents,
@@ -30,6 +33,28 @@ from app.rag.sources import (
 
 
 ProgressFn = Callable[[str, int, int, int], None]
+
+AnnouncementStats = dict[str, Any]
+AnnouncementProgressFn = Callable[[str, AnnouncementStats, int], None]
+
+
+class _RateLimiter:
+    """Process-wide min-interval pacing between outgoing requests."""
+
+    def __init__(self, min_interval: float) -> None:
+        self._min_interval = max(0.0, min_interval)
+        self._next_at = 0.0
+        self._lock = threading.Lock()
+
+    def wait(self) -> None:
+        if self._min_interval <= 0:
+            return
+        with self._lock:
+            now = time.monotonic()
+            sleep_for = self._next_at - now
+            self._next_at = max(now, self._next_at) + self._min_interval
+        if sleep_for > 0:
+            time.sleep(sleep_for)
 
 
 def _now() -> str:
@@ -154,61 +179,147 @@ def ingest_announcements_for_stocks(
     begin_date: str,
     end_date: str,
     max_bodies_per_code: int = 300,
-    workers: int = 8,
-    progress: ProgressFn | None = None,
-) -> dict[str, int]:
-    """Fetch announcement metadata + bodies and ingest. Returns totals."""
-    totals = {"docs": 0, "chunks": 0, "errors": 0}
+    workers: int = 4,
+    request_delay: float = 0.15,
+    max_consecutive_fail_stocks: int = 3,
+    refetch_existing: bool = False,
+    progress: AnnouncementProgressFn | None = None,
+) -> dict[str, Any]:
+    """Fetch announcement metadata + bodies and ingest. Resumable + resilient.
+
+    Resume / idempotency:
+    - Rows already stored for the same (code, title, publish_time) are skipped
+      BEFORE any body request, so reruns only fetch genuinely new bodies
+      (after the ``max_bodies_per_code`` cap, keeping reruns stable at 0 new).
+    - ``save_documents`` still dedupes by content_hash as a final guard.
+
+    Resilience:
+    - Body requests are paced process-wide by ``request_delay`` seconds.
+    - Per-stock failures are collected and surfaced through ``progress`` and
+      the returned totals (errors vs. empty bodies vs. skipped).
+    - When ``max_consecutive_fail_stocks`` stocks in a row fail EVERY request
+      (likely upstream blocking / throttling), the run stops early with
+      ``totals["stopped_early"]`` instead of hammering the endpoint.
+    """
+    totals: dict[str, Any] = {
+        "docs": 0,
+        "chunks": 0,
+        "errors": 0,
+        "empty_bodies": 0,
+        "skipped_existing": 0,
+        "list_rows": 0,
+        "stopped_early": False,
+        "stopped_reason": "",
+        "per_code": [],
+    }
+    limiter = _RateLimiter(request_delay)
+    consecutive_fail_stocks = 0
+
+    def fetch_body_paced(art_code: str) -> tuple[str, str] | None:
+        limiter.wait()
+        return fetch_announcement_body(art_code)
+
     for index, (code, name) in enumerate(stock_list, start=1):
-        code_docs = 0
-        code_chunks = 0
+        stats: AnnouncementStats = {
+            "code": code,
+            "name": name,
+            "list_rows": 0,
+            "new_docs": 0,
+            "new_chunks": 0,
+            "skipped": 0,
+            "errors": 0,
+            "empty": 0,
+            "sample_error": "",
+        }
         try:
             meta = fetch_announcement_list(code, begin_date, end_date)
             if max_bodies_per_code:
                 meta = meta[:max_bodies_per_code]
+            stats["list_rows"] = len(meta)
+            if not refetch_existing and meta:
+                existing = existing_announcement_keys(code)
+                pending = [
+                    row for row in meta
+                    if (row["title"], row["publish_time"]) not in existing
+                ]
+                stats["skipped"] = len(meta) - len(pending)
+                meta = pending
+
             bodies: dict[str, tuple[str, str]] = {}
-            with ThreadPoolExecutor(max_workers=workers) as pool:
-                future_map = {
-                    pool.submit(fetch_announcement_body, row["art_code"]): row
-                    for row in meta
-                }
-                for future in as_completed(future_map):
-                    row = future_map[future]
-                    try:
-                        body = future.result()
-                    except Exception:  # noqa: BLE001
-                        totals["errors"] += 1
-                        continue
-                    if body:
-                        bodies[row["art_code"]] = body
-            items = []
-            for row in meta:
-                body = bodies.get(row["art_code"])
-                if not body:
-                    continue
-                title, content = body
-                items.append(
-                    {
-                        "title": title or row["title"],
-                        "content": content,
-                        "publish_time": row["publish_time"],
-                        "url": row["url"],
+            if meta:
+                with ThreadPoolExecutor(max_workers=workers) as pool:
+                    future_map = {
+                        pool.submit(fetch_body_paced, row["art_code"]): row
+                        for row in meta
                     }
+                    for future in as_completed(future_map):
+                        row = future_map[future]
+                        try:
+                            body = future.result()
+                        except Exception as exc:  # noqa: BLE001 - count + continue
+                            stats["errors"] += 1
+                            if not stats["sample_error"]:
+                                stats["sample_error"] = (
+                                    f"{type(exc).__name__}: {str(exc)[:140]}"
+                                )
+                            continue
+                        if body:
+                            bodies[row["art_code"]] = body
+                        else:
+                            stats["empty"] += 1
+
+                items = []
+                for row in meta:
+                    body = bodies.get(row["art_code"])
+                    if not body:
+                        continue
+                    title, content = body
+                    items.append(
+                        {
+                            "title": title or row["title"],
+                            "content": content,
+                            "publish_time": row["publish_time"],
+                            "url": row["url"],
+                        }
+                    )
+                docs, chunks = save_documents(
+                    items,
+                    source="eastmoney",
+                    doc_type="announcement",
+                    code=code,
+                    stock_name=name,
                 )
-            docs, chunks = save_documents(
-                items,
-                source="eastmoney",
-                doc_type="announcement",
-                code=code,
-                stock_name=name,
-            )
-            totals["docs"] += docs
-            totals["chunks"] += chunks
-            code_docs, code_chunks = docs, chunks
-        except Exception:  # noqa: BLE001
-            totals["errors"] += 1
+                stats["new_docs"], stats["new_chunks"] = docs, chunks
+        except Exception as exc:  # noqa: BLE001 - one bad stock must not kill run
+            stats["errors"] += 1
+            if not stats["sample_error"]:
+                stats["sample_error"] = f"{type(exc).__name__}: {str(exc)[:140]}"
+
+        totals["docs"] += stats["new_docs"]
+        totals["chunks"] += stats["new_chunks"]
+        totals["errors"] += stats["errors"]
+        totals["empty_bodies"] += stats["empty"]
+        totals["skipped_existing"] += stats["skipped"]
+        totals["list_rows"] += stats["list_rows"]
+        totals["per_code"].append(stats)
         if progress:
-            progress(code, code_docs, code_chunks, index)
+            progress(code, stats, index)
+
+        stock_fully_failed = (
+            stats["new_docs"] == 0
+            and stats["errors"] > 0
+            and (stats["list_rows"] == 0 or stats["errors"] >= stats["list_rows"])
+        )
+        consecutive_fail_stocks = consecutive_fail_stocks + 1 if stock_fully_failed else 0
+        if consecutive_fail_stocks >= max_consecutive_fail_stocks:
+            totals["stopped_early"] = True
+            totals["stopped_reason"] = (
+                f"{consecutive_fail_stocks} consecutive stocks failed every request "
+                f"(last sample: {stats['sample_error'] or 'n/a'}); the upstream may be "
+                "blocking/throttling. Progress is saved — rerun the same command later "
+                "to resume (already-ingested rows are skipped)."
+            )
+            break
     return totals
 
 

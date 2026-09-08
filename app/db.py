@@ -225,6 +225,25 @@ def existing_content_hashes(content_hashes: list[str]) -> set[str]:
     return found
 
 
+def existing_announcement_keys(stock_code: str) -> set[tuple[str, str]]:
+    """Return {(title, publish_time)} already stored for a stock's announcements.
+
+    Used by the announcement ingest pipeline to skip re-fetching bodies for
+    documents that are already in the knowledge base (resume / rerun support).
+    """
+    init_db()
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT title, publish_time FROM documents
+            WHERE stock_code = ? AND doc_type = 'announcement'
+              AND content IS NOT NULL AND length(content) > 0
+            """,
+            (stock_code,),
+        ).fetchall()
+    return {(str(r["title"]), str(r["publish_time"] or "")) for r in rows}
+
+
 def insert_documents(rows: list[dict]) -> int:
     """Idempotent bulk insert (INSERT OR IGNORE) into documents."""
     if not rows:

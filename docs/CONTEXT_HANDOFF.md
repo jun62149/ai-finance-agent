@@ -8,7 +8,7 @@
 
 1. **全程只用一个 Codex 实例**（当前模型配置：DeepSeek v4-flash），不换模型、不引入第二个 Agent。
 2. **不再输出阶段报告**；进度靠 git log / README / 本文档体现。
-3. **每次完成一个任务后，必须声明"下一个任务适合 deepseek-v4-flash 还是 deepseek-v4-pro"**（给建议并说明理由，供用户在新会话选择模型时参考）。
+3. **每次做完任务后、以及开始一个任务前，都要声明"该任务 / 下一个任务适合 deepseek-v4-flash 还是 deepseek-v4-pro"**（给建议并说明理由，供用户在新会话选择模型时参考）。
 4. 向量库、语料范围等技术细节由 Codex 自定，不用再逐项问用户。
 5. 新会话开场流程：读本文件 → 总览项目 → 复述理解 → 等用户确认后再动工（用户会粘贴开场白）。
 
@@ -65,9 +65,9 @@ XGBoost 毕设 → Quant Engine（Phase 0 已完成 ✅）
 - DB 新增 `documents`/`chunks` 表（字段按设计文档，含 content_hash/embedding_version），`init_db` 幂等。
 - 去重口径 = **按股票粒度** `sha256(code|title|content)`：市场通稿多股各留一份，保证按 stock_code 过滤不丢。
 - 语料（已定）：本地因子最新日成交额 Top25 + 7 旗舰（600519/601318/600036/000858/601012/300750/002594）≈ 32 只。
-- **新闻已全量入库**：7770 docs / 7770 chunks（2025-09-08 ~ 2026-09-08）。
-- **公告仅试点**（600519/000333 各 40 篇，正文接口已通）；**全量公告未跑 = 下一个任务**。
-- 测试：40 passed（Phase 0 32 + 新增 cleaner/chunker 8）。
+- **新闻已全量入库**：7743 docs / 7743 chunks（2025-09-08 ~ 2026-09-08，按实际库计数为准）。
+- **公告进度（2026-09-08 晚）**：`ingest_announcements.py` 已支持**断点续爬**（按 code+title+date 跳过已入库、不重复抓正文）+ 逐股错误/空正文计数 + 连续全败自动止损 + 请求限速。已入库：**000725 京东方A 99/231 条**（2026-09-08 跑第一批时正文接口中途被 East Money 限流，000725 剩 132 条及其余股票待补）。**正文接口 `np-cnotice-stock.eastmoney.com` 当前对该客户端断连，需稍后重跑**（脚本幂等，重跑只补缺失部分）。
+- 测试：42 passed（Phase 0 32 + cleaner/chunker 8 + 公告 ingestion 续爬/止损 2）。
 
 ## 5. 已定决策（无需再问用户）
 
@@ -82,8 +82,8 @@ XGBoost 毕设 → Quant Engine（Phase 0 已完成 ✅）
 
 ## 6. 下一次任务（按顺序）
 
-1. **公告全量抓取**：`python scripts/ingest_announcements.py --days 365 --max-bodies 300`（32 只，含正文，预计数分钟；幂等可重跑）。
-2. 质量抽查：documents/chunks 计数、按股票取样、重跑确认 0 新增。
+1. **公告全量抓取（由用户本地执行，正文接口恢复后）**：`python scripts/ingest_announcements.py --days 365 --max-bodies 300`（32 只）。脚本特性：按 (code,title,date) 断点续爬只抓缺失正文；`--workers/--delay/--max-consecutive-fail-stocks` 可调（被限流时默认 3 只连续全败自动停）；重跑后输出 `0 new docs` 即完成。一次跑不完就多跑几次，直到 0 new。
+2. 质量抽查：documents/chunks 计数、按股票取样、重跑确认 0 新增（脚本末行会直接提示）。
 3. P2：`qdrant-client` 本地模式 + BGE-M3 对 chunks 建向量（记录 `embedding_version`），验证 query→相关 chunk 最小链路。
 4. P3-P4：BM25 + dense + RRF + reranker。
 5. P5-P6：把检索与 3 个 quant service 包装成 Tools（语义与 API 一致）。
@@ -97,6 +97,7 @@ cd C:\docm\projects\ai-finance-agent
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 .\.venv\Scripts\python.exe -m pytest tests -q
 .\.venv\Scripts\python.exe scripts/ingest_news.py --codes 600519
+.\.venv\Scripts\python.exe scripts/ingest_announcements.py --days 365 --max-bodies 300   # 公告全量（幂等，可重复跑至 0 new）
 .\.venv\Scripts\python.exe scripts/ingest_announcements.py --codes 600519 --days 365 --max-bodies 40
 ```
 
@@ -105,4 +106,5 @@ cd C:\docm\projects\ai-finance-agent
 - 行情数据截至 2026-06-24；演示"最新预测"前需增量抓取（akshare/baostock）。
 - 全 A 700 万行数据源不在磁盘；模型为 B 全 A 版，口径见 phase0_report。
 - 新闻正文多为 East Money 搜索摘要（短文本），深度分析主要靠公告正文。
+- **East Money 公告正文接口不稳定/会被限流**（2026-09-08 出现整段断连，列表接口正常）：抓取要小步、限速，被封后稍等再跑（脚本已支持续爬与止损，勿连续硬跑）。
 - xgboost 3.4.1 加载旧 pickle 有提示，可运行；后续建议 `Booster.save_model` 固化。
