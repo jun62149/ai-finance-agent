@@ -52,7 +52,7 @@ C:\docm\projects\
 - 最新预测跑通：983 只入池。
 - 一致性验证：旧 B 引擎 vs 新引擎 5/5 完全一致（max_abs_diff = 0）。
 - Quant API Contract（FastAPI）：health / factors / prediction / ranking，支持 as_of，结构化错误，无 demo 假数据回退。
-- 测试：32 passed / 0 failed。
+- 测试：32 passed / 0 failed（2026-09-08 Phase 1 起步后全量 40 passed，新增 cleaner/chunker 单测）。
 - Git：仓库在 `C:\docm\projects\ai-finance-agent`，当前 HEAD 附近 `ff67090`（docs: update paths after workspace reorg）。
 
 ## 四、必须遵守的规则（用户明确要求）
@@ -75,15 +75,38 @@ C:\docm\projects\
 - xgboost 3.4.1 加载 3.3.0 pickle 有旧格式提示，可运行；后续建议 `Booster.save_model`。
 - Docker Desktop daemon 未启动；GPU RTX 4070 12GB 可用。
 
-## 六、下一步（Phase 1 建议顺序）
+## 六、Phase 1 进展（2026-09-08 更新，下一次直接续跑）
 
-1. P1 金融新闻/公告 ingestion：清洗 → 语义切分 → metadata（documents/chunks 表结构按设计文档 §6-7）。
-2. P2-P4：BGE-M3 + Qdrant + BM25 → Hybrid + Reranker（先本地小语料验证）。
-3. P5-P6：把现有 3 个 service 函数包装成 Quant Tools（语义与 API 一致）。
-4. P7-P8：LangGraph 受控 Agent + 最小前端。
-5. P9-P10：≥30 条评测集、对照实验、README/架构图/Demo、Docker。
+### 已完成
 
-先决确认项（动手 Phase 1 前问用户）：LLM 供应商与 Key（DeepSeek/通义/GLM/OpenAI 兼容均可，入 .env）、新闻/公告语料范围（建议先 20-50 只活跃股票近 1-2 年）、Qdrant 用 Docker 还是本地向量库。
+- `app/rag/`：cleaner（HTML/全半角/空白统一，保留数字）、chunker（段落/句子边界，max_chars=600）、sources（East Money 新闻分页 + 公告列表/正文）、ingestion（幂等入库）。
+- DB 新增 `documents` / `chunks` 表（字段按设计文档 §6-7，含 content_hash/embedding_version），`init_db` 幂等。
+- **去重口径 = 按股票粒度**：`content_hash = sha256(code|title|content)`。市场通稿会命中多只股票，按股各留一份，保证按 stock_code 过滤检索不丢。
+- CLI：`scripts/ingest_news.py`、`scripts/ingest_announcements.py`（`--codes` 试点 / 默认 corpus 模式）。
+- **语料范围（已定）**：本地因子最新交易日成交额 Top25 + 7 旗舰（600519/601318/600036/000858/601012/300750/002594）≈ 32 只。
+- **新闻已全量入库**：7770 docs / 7770 chunks（2025-09-08 ~ 2026-09-08，每只最多 6 页 × 50 条）。
+- **公告仅试点**：600519/000333 各 40 篇（正文接口已通）。全量公告抓取**未跑**。
+- 测试：40 passed（原 32 + 新 8）。依赖新增 `akshare`。
+
+### 已记录的决策（用户授权 Codex 自定）
+
+- LLM：DeepSeek，`LLM_MODEL=deepseek-v4-flash`，key 只放 `.env`（不提交）。
+- 向量库：Phase 2 用 **Qdrant 本地嵌入模式**（`qdrant-client` path 模式，API 与 Docker 服务版同构，之后切服务只改连接地址）；Phase 1 先落 SQLite。
+- 不再输出阶段报告；进度靠 git log / README / 本文档。
+- 本地因子/行情只有深市主板（000/002 为主）；600519 等旗舰无因子行但新闻语料正常，量化查询按契约返回 NoData 属预期。
+
+### 下次续跑清单（按顺序）
+
+1. `python scripts/ingest_announcements.py --days 365 --max-bodies 300`（32 只全量公告含正文，预计数分钟）。
+2. 入库质量抽查：documents/chunks 计数、按股票取样、再跑一遍确认 0 新增（幂等）。
+3. P2：`qdrant-client` 本地模式 + BGE-M3，对 chunks 建向量（记录 `embedding_version`），验证"给定 query 返回相关 chunk"最小链路。
+4. P3-P4：BM25 + dense + RRF + reranker；P5-P6：把检索与现有 3 个 service 包装成 Tools；P7-P8：LangGraph 受控 Agent + 最小前端；P9-P10：评测集、对照实验、README/Demo/Docker。
+
+### 遗留问题（沿用 Phase 0）
+
+- 行情数据截至 2026-06-24，演示"最新预测"前需增量抓取（见 phase0_report 剩余问题）。
+- 全 A 700 万行数据源不在磁盘；模型为 B 全 A 版本，数据口径见报告。
+- 新闻正文多为 East Money 搜索摘要（短文本），深度分析主要靠公告正文。
 
 ## 七、启动方式速查
 

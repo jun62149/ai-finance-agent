@@ -98,6 +98,45 @@ CREATE TABLE IF NOT EXISTS backtest_result (
     nav_model REAL,
     nav_base REAL
 );
+
+CREATE TABLE IF NOT EXISTS documents (
+    document_id TEXT PRIMARY KEY,
+    stock_code TEXT NOT NULL,
+    stock_name TEXT,
+    doc_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    source TEXT NOT NULL,
+    publish_time TEXT,
+    content TEXT NOT NULL,
+    url TEXT,
+    content_hash TEXT UNIQUE,
+    created_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_documents_stock_publish
+    ON documents(stock_code, publish_time);
+
+CREATE TABLE IF NOT EXISTS chunks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chunk_id TEXT UNIQUE NOT NULL,
+    document_id TEXT NOT NULL,
+    stock_code TEXT NOT NULL,
+    stock_name TEXT,
+    doc_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    source TEXT NOT NULL,
+    publish_time TEXT,
+    url TEXT,
+    content TEXT NOT NULL,
+    chunk_index INTEGER NOT NULL,
+    chunk_hash TEXT NOT NULL,
+    embedding_version TEXT,
+    created_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_chunks_document ON chunks(document_id);
+CREATE INDEX IF NOT EXISTS idx_chunks_stock_publish
+    ON chunks(stock_code, publish_time);
 """
 
 
@@ -166,6 +205,81 @@ def table_count(table: str) -> int:
     with connect() as conn:
         row = conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()
     return int(row["n"])
+
+
+def existing_content_hashes(content_hashes: list[str]) -> set[str]:
+    """Return the subset of content_hashes already stored in `documents`."""
+    if not content_hashes:
+        return set()
+    init_db()
+    found: set[str] = set()
+    with connect() as conn:
+        for i in range(0, len(content_hashes), 400):
+            batch = content_hashes[i : i + 400]
+            placeholders = ", ".join(["?"] * len(batch))
+            rows = conn.execute(
+                f"SELECT content_hash FROM documents WHERE content_hash IN ({placeholders})",
+                tuple(batch),
+            ).fetchall()
+            found.update(r["content_hash"] for r in rows)
+    return found
+
+
+def insert_documents(rows: list[dict]) -> int:
+    """Idempotent bulk insert (INSERT OR IGNORE) into documents."""
+    if not rows:
+        return 0
+    init_db()
+    columns = [
+        "document_id",
+        "stock_code",
+        "stock_name",
+        "doc_type",
+        "title",
+        "source",
+        "publish_time",
+        "content",
+        "url",
+        "content_hash",
+        "created_at",
+    ]
+    placeholders = ", ".join(["?"] * len(columns))
+    sql = f"INSERT OR IGNORE INTO documents ({', '.join(columns)}) VALUES ({placeholders})"
+    with connect() as conn:
+        conn.executemany(
+            sql, [tuple(r.get(c) for c in columns) for r in rows]
+        )
+    return len(rows)
+
+
+def insert_chunks(rows: list[dict]) -> int:
+    """Idempotent bulk insert (INSERT OR IGNORE) into chunks."""
+    if not rows:
+        return 0
+    init_db()
+    columns = [
+        "chunk_id",
+        "document_id",
+        "stock_code",
+        "stock_name",
+        "doc_type",
+        "title",
+        "source",
+        "publish_time",
+        "url",
+        "content",
+        "chunk_index",
+        "chunk_hash",
+        "embedding_version",
+        "created_at",
+    ]
+    placeholders = ", ".join(["?"] * len(columns))
+    sql = f"INSERT OR IGNORE INTO chunks ({', '.join(columns)}) VALUES ({placeholders})"
+    with connect() as conn:
+        conn.executemany(
+            sql, [tuple(r.get(c) for c in columns) for r in rows]
+        )
+    return len(rows)
 
 
 def clear_table(table: str) -> None:
