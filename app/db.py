@@ -244,6 +244,39 @@ def existing_announcement_keys(stock_code: str) -> set[tuple[str, str]]:
     return {(str(r["title"]), str(r["publish_time"] or "")) for r in rows}
 
 
+def purge_documents(doc_type: str, source: str | None = None) -> tuple[int, int]:
+    """Delete documents of a doc_type (optionally one source) plus their chunks.
+
+    Used when switching an ingestion source (e.g. eastmoney -> cninfo) so the
+    knowledge base does not keep two copies of the same announcement.
+    Returns (deleted_documents, deleted_chunks).
+    """
+    init_db()
+    where = "doc_type = ?" + (" AND source = ?" if source else "")
+    params: tuple = (doc_type, source) if source else (doc_type,)
+    with connect() as conn:
+        ids = [
+            str(r["document_id"])
+            for r in conn.execute(
+                f"SELECT document_id FROM documents WHERE {where}", params
+            ).fetchall()
+        ]
+        if not ids:
+            return 0, 0
+        chunks_deleted = 0
+        for i in range(0, len(ids), 400):
+            batch = ids[i : i + 400]
+            placeholders = ", ".join(["?"] * len(batch))
+            chunks_deleted += conn.execute(
+                f"DELETE FROM chunks WHERE document_id IN ({placeholders})",
+                tuple(batch),
+            ).rowcount
+        docs_deleted = conn.execute(
+            f"DELETE FROM documents WHERE {where}", params
+        ).rowcount
+    return int(docs_deleted), int(chunks_deleted)
+
+
 def insert_documents(rows: list[dict]) -> int:
     """Idempotent bulk insert (INSERT OR IGNORE) into documents."""
     if not rows:

@@ -1,20 +1,31 @@
-"""Phase 1: fetch East Money announcements (list + body) and ingest.
+"""Phase 1: fetch announcements (list + body) and ingest.
+
+Sources:
+    cninfo    (default) 巨潮资讯网 official disclosure platform — list via
+              new/hisAnnouncement/query, body = disclosure PDF -> text (pypdf).
+              Not affected by East Money's IP-level notice throttling.
+    eastmoney (legacy)  East Money notice API; kept as fallback, but its
+              content host throttles/blocks aggressive clients.
 
 Resumable + idempotent: rows already stored for (code, title, publish_time)
 are skipped before any body request, so re-running the same command only
 fetches genuinely new bodies and reports 0 new when the range is complete.
 
 Usage:
-    python scripts/ingest_announcements.py                          # corpus mode
-    python scripts/ingest_announcements.py --codes 600519,000333    # pilot mode
-    python scripts/ingest_announcements.py --codes 600519 --days 30 --workers 2
+    python scripts/ingest_announcements.py                                   # corpus, cninfo
+    python scripts/ingest_announcements.py --source eastmoney                # legacy source
+    python scripts/ingest_announcements.py --codes 600519 --days 30 --max-bodies 5
 
-Tuning knobs (upstream East Money can be flaky / block aggressive crawlers):
+Tuning knobs:
     --workers N                 concurrent body fetches per stock (default 4)
     --delay SECONDS             min interval between requests (default 0.15)
     --max-consecutive-fail-stocks N
                                 stop after N stocks in a row fail EVERY request
     --refetch-existing          ignore already-ingested rows and refetch bodies
+
+Switching source: the resume key is (code, title, publish_time) and different
+sources title the same announcement differently, so purge the old source first
+(scripts/purge_documents.py) to avoid keeping two copies of one announcement.
 """
 
 from __future__ import annotations
@@ -28,7 +39,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.db import read_sql
-from app.rag.ingestion import build_corpus, ingest_announcements_for_stocks
+from app.rag.ingestion import (
+    ANNOUNCEMENT_SOURCES,
+    build_corpus,
+    ingest_announcements_for_stocks,
+)
 
 FLAGSHIP_CODES = [
     "600519",  # 贵州茅台
@@ -52,8 +67,9 @@ def _resolve_names(codes: list[str]) -> list[tuple[str, str]]:
 def _print_stats_table(stats_rows: list[dict]) -> None:
     if not stats_rows:
         return
-    header = ("code", "name", "list", "new", "chunks", "skip", "err", "empty")
-    widths = {"code": 6, "name": 10, "list": 5, "new": 5, "chunks": 6, "skip": 5, "err": 4, "empty": 5}
+    header = ("code", "name", "list", "new", "chunks", "chars", "skip", "err", "empty")
+    widths = {"code": 6, "name": 10, "list": 5, "new": 5, "chunks": 6,
+              "chars": 9, "skip": 5, "err": 4, "empty": 5}
     print("per-code detail:")
     print(
         "  " + "  ".join(h.ljust(widths[h]) for h in header)
@@ -65,6 +81,7 @@ def _print_stats_table(stats_rows: list[dict]) -> None:
             str(s["list_rows"]).ljust(widths["list"]),
             str(s["new_docs"]).ljust(widths["new"]),
             str(s["new_chunks"]).ljust(widths["chunks"]),
+            str(s.get("chars", 0)).ljust(widths["chars"]),
             str(s["skipped"]).ljust(widths["skip"]),
             str(s["errors"]).ljust(widths["err"]),
             str(s["empty"]).ljust(widths["empty"]),
@@ -75,13 +92,17 @@ def _print_stats_table(stats_rows: list[dict]) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Ingest East Money announcements (resumable)")
+    parser = argparse.ArgumentParser(description="Ingest announcements (resumable)")
+    parser.add_argument("--source", default="cninfo", choices=list(ANNOUNCEMENT_SOURCES),
+                        help="announcement source (default: cninfo, official disclosure)")
     parser.add_argument("--codes", help="comma-separated 6-digit codes (overrides corpus mode)")
     parser.add_argument("--days", type=int, default=365)
     parser.add_argument("--max-bodies", type=int, default=300)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--delay", type=float, default=0.15,
                         help="min interval seconds between body requests")
+    parser.add_argument("--page-size", type=int, default=50,
+                        help="cninfo list page size")
     parser.add_argument("--max-consecutive-fail-stocks", type=int, default=3,
                         help="stop early after this many consecutive fully-failed stocks")
     parser.add_argument("--refetch-existing", action="store_true",
@@ -104,7 +125,7 @@ def main() -> None:
         raise SystemExit(2)
 
     print(
-        f"range={begin_date}..{end_date} stocks={len(stock_list)} "
+        f"source={args.source} range={begin_date}..{end_date} stocks={len(stock_list)} "
         f"max_bodies_per_code={args.max_bodies} workers={args.workers} "
         f"delay={args.delay}s refetch_existing={args.refetch_existing}"
     )
@@ -125,10 +146,12 @@ def main() -> None:
         stock_list,
         begin_date=begin_date,
         end_date=end_date,
+        source=args.source,
         max_bodies_per_code=args.max_bodies,
         workers=args.workers,
         request_delay=args.delay,
         max_consecutive_fail_stocks=args.max_consecutive_fail_stocks,
+        list_page_size=args.page_size,
         refetch_existing=args.refetch_existing,
         progress=progress,
     )
@@ -137,8 +160,9 @@ def main() -> None:
     _print_stats_table(totals["per_code"])
     print("")
     print(
-        f"done in {time.time() - t0:.1f}s | "
+        f"done in {time.time() - t0:.1f}s | source={totals.get('source', args.source)} "
         f"new_docs={totals['docs']} new_chunks={totals['chunks']} "
+        f"new_chars={totals.get('chars', 0)} "
         f"skipped_existing={totals['skipped_existing']} "
         f"errors={totals['errors']} empty_bodies={totals['empty_bodies']} "
         f"list_rows={totals['list_rows']}"

@@ -16,6 +16,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+from functools import partial
 from typing import Any, Callable, Iterable
 
 from app.db import (
@@ -28,6 +29,8 @@ from app.rag.chunker import Chunk, chunk_text
 from app.rag.sources import (
     fetch_announcement_body,
     fetch_announcement_list,
+    fetch_cninfo_announcement_body,
+    fetch_cninfo_announcement_list,
     fetch_news_pages,
 )
 
@@ -36,6 +39,47 @@ ProgressFn = Callable[[str, int, int, int], None]
 
 AnnouncementStats = dict[str, Any]
 AnnouncementProgressFn = Callable[[str, AnnouncementStats, int], None]
+
+ANNOUNCEMENT_SOURCES = ("eastmoney", "cninfo")
+
+
+def _eastmoney_body(row: dict[str, Any]) -> tuple[str, str] | None:
+    return fetch_announcement_body(row["art_code"])
+
+
+def _cninfo_body(row: dict[str, Any]) -> tuple[str, str] | None:
+    return fetch_cninfo_announcement_body(row)
+
+
+def _row_key(row: dict[str, Any]) -> str:
+    """Stable per-announcement key used to attach fetched bodies to list rows."""
+    return str(row.get("art_code") or row.get("url") or "")
+
+
+def _announcement_adapters(
+    source: str,
+    *,
+    page_size: int = 50,
+    max_rows: int | None = None,
+) -> tuple[Callable[..., list[dict[str, Any]]], Callable[[dict[str, Any]], tuple[str, str] | None]]:
+    """Resolve (list_fn, body_fn) for an announcement source.
+
+    Module attributes are looked up at call time so tests can monkeypatch them.
+    """
+    if source == "cninfo":
+        return (
+            partial(
+                fetch_cninfo_announcement_list,
+                page_size=page_size,
+                max_rows=max_rows,
+            ),
+            _cninfo_body,
+        )
+    if source == "eastmoney":
+        return fetch_announcement_list, _eastmoney_body
+    raise ValueError(
+        f"unknown announcement source {source!r}; expected one of {ANNOUNCEMENT_SOURCES}"
+    )
 
 
 class _RateLimiter:
@@ -178,14 +222,19 @@ def ingest_announcements_for_stocks(
     *,
     begin_date: str,
     end_date: str,
+    source: str = "eastmoney",
     max_bodies_per_code: int = 300,
     workers: int = 4,
     request_delay: float = 0.15,
     max_consecutive_fail_stocks: int = 3,
+    list_page_size: int = 50,
     refetch_existing: bool = False,
     progress: AnnouncementProgressFn | None = None,
 ) -> dict[str, Any]:
     """Fetch announcement metadata + bodies and ingest. Resumable + resilient.
+
+    ``source`` selects the adapter: ``cninfo`` (巨潮资讯网, official, default
+    for the CLI) or ``eastmoney`` (legacy, subject to IP-level throttling).
 
     Resume / idempotency:
     - Rows already stored for the same (code, title, publish_time) are skipped
@@ -201,9 +250,16 @@ def ingest_announcements_for_stocks(
       (likely upstream blocking / throttling), the run stops early with
       ``totals["stopped_early"]`` instead of hammering the endpoint.
     """
+    list_fn, body_fn = _announcement_adapters(
+        source,
+        page_size=list_page_size,
+        max_rows=max_bodies_per_code or None,
+    )
     totals: dict[str, Any] = {
+        "source": source,
         "docs": 0,
         "chunks": 0,
+        "chars": 0,
         "errors": 0,
         "empty_bodies": 0,
         "skipped_existing": 0,
@@ -215,9 +271,9 @@ def ingest_announcements_for_stocks(
     limiter = _RateLimiter(request_delay)
     consecutive_fail_stocks = 0
 
-    def fetch_body_paced(art_code: str) -> tuple[str, str] | None:
+    def fetch_body_paced(row: dict[str, Any]) -> tuple[str, str] | None:
         limiter.wait()
-        return fetch_announcement_body(art_code)
+        return body_fn(row)
 
     for index, (code, name) in enumerate(stock_list, start=1):
         stats: AnnouncementStats = {
@@ -226,13 +282,14 @@ def ingest_announcements_for_stocks(
             "list_rows": 0,
             "new_docs": 0,
             "new_chunks": 0,
+            "chars": 0,
             "skipped": 0,
             "errors": 0,
             "empty": 0,
             "sample_error": "",
         }
         try:
-            meta = fetch_announcement_list(code, begin_date, end_date)
+            meta = list_fn(code, begin_date, end_date)
             if max_bodies_per_code:
                 meta = meta[:max_bodies_per_code]
             stats["list_rows"] = len(meta)
@@ -249,8 +306,7 @@ def ingest_announcements_for_stocks(
             if meta:
                 with ThreadPoolExecutor(max_workers=workers) as pool:
                     future_map = {
-                        pool.submit(fetch_body_paced, row["art_code"]): row
-                        for row in meta
+                        pool.submit(fetch_body_paced, row): row for row in meta
                     }
                     for future in as_completed(future_map):
                         row = future_map[future]
@@ -264,13 +320,13 @@ def ingest_announcements_for_stocks(
                                 )
                             continue
                         if body:
-                            bodies[row["art_code"]] = body
+                            bodies[_row_key(row)] = body
                         else:
                             stats["empty"] += 1
 
                 items = []
                 for row in meta:
-                    body = bodies.get(row["art_code"])
+                    body = bodies.get(_row_key(row))
                     if not body:
                         continue
                     title, content = body
@@ -284,12 +340,13 @@ def ingest_announcements_for_stocks(
                     )
                 docs, chunks = save_documents(
                     items,
-                    source="eastmoney",
+                    source=source,
                     doc_type="announcement",
                     code=code,
                     stock_name=name,
                 )
                 stats["new_docs"], stats["new_chunks"] = docs, chunks
+                stats["chars"] = sum(len(item["content"]) for item in items)
         except Exception as exc:  # noqa: BLE001 - one bad stock must not kill run
             stats["errors"] += 1
             if not stats["sample_error"]:
@@ -297,6 +354,7 @@ def ingest_announcements_for_stocks(
 
         totals["docs"] += stats["new_docs"]
         totals["chunks"] += stats["new_chunks"]
+        totals["chars"] += stats["chars"]
         totals["errors"] += stats["errors"]
         totals["empty_bodies"] += stats["empty"]
         totals["skipped_existing"] += stats["skipped"]
