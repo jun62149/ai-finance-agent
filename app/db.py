@@ -340,6 +340,99 @@ def clear_table(table: str) -> None:
         conn.execute(f"DELETE FROM {table}")
 
 
+def fetch_chunks_for_embedding(
+    version: str,
+    *,
+    limit: int | None = None,
+    doc_type: str | None = None,
+    after_id: int = 0,
+) -> list[dict]:
+    """Chunks that still need a vector for `version` (pending or outdated).
+
+    `after_id` makes the scan resumable by ascending chunk id.
+    """
+    init_db()
+    where = ["id > ?", "(embedding_version IS NULL OR embedding_version != ?)"]
+    params: list = [after_id, version]
+    if doc_type:
+        where.append("doc_type = ?")
+        params.append(doc_type)
+    sql = f"""
+        SELECT id, chunk_id, document_id, stock_code, stock_name, doc_type,
+               title, source, publish_time, url, content, chunk_index
+        FROM chunks
+        WHERE {' AND '.join(where)}
+        ORDER BY id
+    """
+    if limit:
+        sql += " LIMIT ?"
+        params.append(int(limit))
+    with connect() as conn:
+        rows = conn.execute(sql, tuple(params)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def set_chunks_embedding_version(ids: list[int], version: str) -> int:
+    """Mark chunks as embedded with `version` (called after a successful upsert)."""
+    if not ids:
+        return 0
+    init_db()
+    updated = 0
+    with connect() as conn:
+        for i in range(0, len(ids), 400):
+            batch = ids[i : i + 400]
+            placeholders = ", ".join(["?"] * len(batch))
+            updated += conn.execute(
+                f"UPDATE chunks SET embedding_version = ? WHERE id IN ({placeholders})",
+                (version, *batch),
+            ).rowcount
+    return int(updated)
+
+
+def fetch_chunk_contents(ids: list[int]) -> dict[int, str]:
+    """Map chunk row ids -> content (Qdrant stores metadata; text stays here)."""
+    if not ids:
+        return {}
+    init_db()
+    out: dict[int, str] = {}
+    with connect() as conn:
+        for i in range(0, len(ids), 400):
+            batch = ids[i : i + 400]
+            placeholders = ", ".join(["?"] * len(batch))
+            for row in conn.execute(
+                f"SELECT id, content FROM chunks WHERE id IN ({placeholders})",
+                tuple(batch),
+            ).fetchall():
+                out[int(row["id"])] = str(row["content"])
+    return out
+
+
+def embedding_stats(version: str) -> dict[str, dict[str, int]]:
+    """Per doc_type chunk counts: total / embedded with `version` / pending."""
+    init_db()
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT doc_type,
+                   COUNT(*) AS total,
+                   SUM(CASE WHEN embedding_version = ? THEN 1 ELSE 0 END) AS embedded
+            FROM chunks
+            GROUP BY doc_type
+            """,
+            (version,),
+        ).fetchall()
+    stats: dict[str, dict[str, int]] = {}
+    for row in rows:
+        total = int(row["total"] or 0)
+        embedded = int(row["embedded"] or 0)
+        stats[str(row["doc_type"])] = {
+            "total": total,
+            "embedded": embedded,
+            "pending": total - embedded,
+        }
+    return stats
+
+
 def latest_trade_date() -> str:
     init_db()
     with connect() as conn:
