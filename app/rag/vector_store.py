@@ -24,10 +24,29 @@ PAYLOAD_FIELDS = (
     "title",
     "source",
     "publish_time",
+    "publish_ts",
     "url",
     "chunk_index",
     "embedding_version",
 )
+
+
+def _date_to_epoch(value: str, *, end_of_day: bool = False) -> int:
+    """Convert a YYYY-MM-DD (or ISO datetime) string to an epoch second.
+
+    Payload stores `publish_ts` as an integer so Qdrant range filters work;
+    string dates cannot be range-filtered.
+    """
+    from datetime import datetime, time
+
+    text = str(value).strip()
+    if len(text) <= 10:
+        moment = datetime.strptime(text, "%Y-%m-%d")
+        if end_of_day:
+            moment = datetime.combine(moment.date(), time(23, 59, 59))
+    else:
+        moment = datetime.fromisoformat(text)
+    return int(moment.timestamp())
 
 
 class ChunkVectorStore:
@@ -77,11 +96,36 @@ class ChunkVectorStore:
                 collection_name=self.collection,
                 vectors_config=VectorParams(size=self.dim, distance=Distance.COSINE),
             )
+        self.ensure_payload_indexes()
         if recreate:
             # Local mode quirk (qdrant-client 1.19, measured 2026-09-10):
             # delete_collection + create_collection resurrects the old points, so
             # an explicit filter-delete is required to really empty a collection.
             self.purge()
+
+    def ensure_payload_indexes(self) -> None:
+        """Index the metadata fields used by filters (idempotent)."""
+        from qdrant_client.models import PayloadSchemaType
+
+        for field, schema in (
+            ("stock_code", PayloadSchemaType.KEYWORD),
+            ("doc_type", PayloadSchemaType.KEYWORD),
+            ("publish_ts", PayloadSchemaType.INTEGER),
+        ):
+            try:
+                self.client.create_payload_index(self.collection, field, schema)
+            except Exception:  # noqa: BLE001 - already exists / unsupported locally
+                continue
+
+    def set_payloads(self, point_ids: Sequence[int], payloads: Sequence[dict[str, Any]]) -> int:
+        """Update payload fields in place (no re-embedding)."""
+        if not (len(point_ids) == len(payloads)):
+            raise ValueError("point_ids and payloads must have equal length")
+        updated = 0
+        for point_id, payload in zip(point_ids, payloads):
+            self.client.set_payload(self.collection, payload=payload, points=[int(point_id)])
+            updated += 1
+        return updated
 
     def purge(self) -> int:
         """Delete every point in the collection, keeping the collection itself."""
@@ -175,8 +219,13 @@ class ChunkVectorStore:
         top_k: int = 5,
         stock_code: str | None = None,
         doc_type: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> list[dict[str, Any]]:
-        query_filter = self._build_filter(stock_code=stock_code, doc_type=doc_type)
+        query_filter = self._build_filter(
+            stock_code=stock_code, doc_type=doc_type,
+            date_from=date_from, date_to=date_to,
+        )
         response = self.client.query_points(
             self.collection,
             query=list(map(float, vector)),
@@ -193,10 +242,15 @@ class ChunkVectorStore:
         return results
 
     @staticmethod
-    def _build_filter(stock_code: str | None, doc_type: str | None) -> Any:
-        if not stock_code and not doc_type:
+    def _build_filter(
+        stock_code: str | None,
+        doc_type: str | None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> Any:
+        if not (stock_code or doc_type or date_from or date_to):
             return None
-        from qdrant_client.models import FieldCondition, Filter, MatchValue
+        from qdrant_client.models import FieldCondition, Filter, MatchValue, Range
 
         conditions = []
         if stock_code:
@@ -206,5 +260,15 @@ class ChunkVectorStore:
         if doc_type:
             conditions.append(
                 FieldCondition(key="doc_type", match=MatchValue(value=doc_type))
+            )
+        if date_from or date_to:
+            conditions.append(
+                FieldCondition(
+                    key="publish_ts",
+                    range=Range(
+                        gte=_date_to_epoch(date_from) if date_from else None,
+                        lte=_date_to_epoch(date_to, end_of_day=True) if date_to else None,
+                    ),
+                )
             )
         return Filter(must=conditions)

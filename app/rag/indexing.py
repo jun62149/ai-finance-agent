@@ -89,6 +89,8 @@ def semantic_search(
     top_k: int = 5,
     stock_code: str | None = None,
     doc_type: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> list[dict[str, Any]]:
     """Embed a query and return the most similar chunks with their metadata.
 
@@ -102,7 +104,8 @@ def semantic_search(
             f"but the collection expects {store.dim}; set EMBEDDING_DIM"
         )
     hits = store.search(
-        vector, top_k=top_k, stock_code=stock_code, doc_type=doc_type
+        vector, top_k=top_k, stock_code=stock_code, doc_type=doc_type,
+        date_from=date_from, date_to=date_to,
     )
     contents = fetch_chunk_contents([int(hit["point_id"]) for hit in hits])
     for hit in hits:

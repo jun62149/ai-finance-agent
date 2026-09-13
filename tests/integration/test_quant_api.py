@@ -93,3 +93,78 @@ def test_empty_db_returns_nodata_never_fake(tmp_path, monkeypatch):
     resp = client.get("/api/stocks/ranking")
     assert resp.status_code == 404
     assert resp.json()["detail"]["code"] == "NoData"
+
+def test_rag_search_endpoint_returns_evidence(app_client, monkeypatch):
+    """POST /api/rag/search exposes the tool contract (components faked)."""
+    from app.tools import rag_tools
+
+    class FakeEmbedder:
+        version = "test-v1"
+        dim = 4
+
+        def encode(self, texts):
+            return [[1.0, 0.0, 0.0, 0.0] for _ in texts]
+
+        def encode_one(self, text):
+            return [1.0, 0.0, 0.0, 0.0]
+
+    class FakeStore:
+        dim = 4
+
+        def search(self, *args, **kwargs):
+            return [
+                {
+                    "chunk_id": "news-eastmoney-000725-abc:c000",
+                    "document_id": "news-eastmoney-000725-abc",
+                    "point_id": 1,
+                    "stock_code": "000725",
+                    "stock_name": "京东方A",
+                    "doc_type": "news",
+                    "title": "京东方A回购进展",
+                    "source": "eastmoney",
+                    "publish_time": "2026-08-20 10:00:00",
+                    "url": "http://example.com/a",
+                    "content": "公司回购进展顺利。",
+                    "score": 0.7,
+                }
+            ]
+
+    class FakeBM25:
+        def search(self, *args, **kwargs):
+            return []
+
+    class FakeReranker:
+        def rerank(self, query, candidates, top_k=None):
+            return list(candidates)[:top_k], ""
+
+    monkeypatch.setattr(
+        rag_tools,
+        "get_components",
+        lambda **kwargs: {
+            "embedder": FakeEmbedder(),
+            "store": FakeStore(),
+            "bm25": FakeBM25(),
+            "reranker": FakeReranker(),
+        },
+    )
+
+    response = app_client.post("/api/rag/search", json={"query": "回购进展", "top_k": 3})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 1
+    assert body["has_evidence"] is True
+    evidence = body["results"][0]
+    assert evidence["url"] and evidence["publish_time"] and evidence["source"]
+    assert evidence["dense_score"] == 0.7
+
+
+def test_rag_search_endpoint_validates_arguments(app_client):
+    """Invalid arguments must come back as structured 400 errors, not 500s."""
+    response = app_client.post("/api/rag/search", json={"query": "x"})
+    assert response.status_code == 422  # pydantic min_length
+
+    response = app_client.post(
+        "/api/rag/search", json={"query": "回购", "doc_type": "video"}
+    )
+    assert response.status_code == 422

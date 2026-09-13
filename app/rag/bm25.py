@@ -135,15 +135,22 @@ class BM25Index:
         top_k: int = 20,
         stock_code: str | None = None,
         doc_type: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Top-k chunks for a query; `bm25_score` is attached to each result."""
+        """Top-k chunks for a query; `bm25_score` is attached to each result.
+
+        Metadata filters (stock / type / date) are applied after retrieval,
+        because bm25s has no filtering support; a wider candidate window is
+        scanned when any filter is active.
+        """
         if not self.chunk_ids:
             return []
         tokens = tokenize(query)
         if not tokens:
             return []
 
-        filtered = bool(stock_code or doc_type)
+        filtered = bool(stock_code or doc_type or date_from or date_to)
         window = min(len(self.chunk_ids), max(top_k * 10, 200) if filtered else top_k)
         results, scores = self.retriever.retrieve([tokens], k=window, sorted=True)
         hits: list[dict[str, Any]] = []
@@ -158,6 +165,11 @@ class BM25Index:
             if stock_code and meta.get("stock_code") != stock_code:
                 continue
             if doc_type and meta.get("doc_type") != doc_type:
+                continue
+            published = str(meta.get("publish_time") or "")[:10]
+            if date_from and published and published < date_from:
+                continue
+            if date_to and published and published > date_to:
                 continue
             meta["bm25_score"] = score
             hits.append(meta)

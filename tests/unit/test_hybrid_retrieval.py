@@ -156,7 +156,7 @@ class FakeEmbedder:
 class FakeStore:
     dim = 4
 
-    def search(self, vector, top_k=5, stock_code=None, doc_type=None):
+    def search(self, vector, top_k=5, stock_code=None, doc_type=None, date_from=None, date_to=None):
         return [
             {"chunk_id": "c2", "point_id": 2, "score": 0.82, "stock_code": "600519", "doc_type": "announcement"},
             {"chunk_id": "c1", "point_id": 1, "score": 0.71, "stock_code": "000725", "doc_type": "announcement"},
@@ -164,7 +164,7 @@ class FakeStore:
 
 
 class FakeBM25:
-    def search(self, query, top_k=20, stock_code=None, doc_type=None):
+    def search(self, query, top_k=20, stock_code=None, doc_type=None, date_from=None, date_to=None):
         return [
             {"chunk_id": "c1", "point_id": 1, "bm25_score": 11.5, "stock_code": "000725", "doc_type": "announcement"},
             {"chunk_id": "c3", "point_id": 3, "bm25_score": 4.2, "stock_code": "600519", "doc_type": "news"},

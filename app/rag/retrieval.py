@@ -56,6 +56,9 @@ def hybrid_search(
     top_k: int | None = None,
     stock_code: str | None = None,
     doc_type: str | None = None,
+    days: int | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     dense_top_k: int | None = None,
     bm25_top_k: int | None = None,
     fusion_top_k: int | None = None,
@@ -66,8 +69,17 @@ def hybrid_search(
     bm25_index: Any = None,
     reranker: Any = None,
 ) -> dict[str, Any]:
-    """Run the full retrieval pipeline for one query."""
+    """Run the full retrieval pipeline for one query.
+
+    `days` is a convenience window (published within the last N days, relative to
+    today); `date_from` / `date_to` (YYYY-MM-DD) override it. Dense applies the
+    window through the Qdrant `publish_ts` payload field, BM25 post-filters.
+    """
     timings: dict[str, float] = {}
+    if days is not None and not (date_from or date_to):
+        from datetime import date, timedelta
+
+        date_from = (date.today() - timedelta(days=int(days))).isoformat()
 
     if embedder is None or store is None or bm25_index is None or reranker is None:
         components = get_components(with_reranker=use_rerank)
@@ -85,6 +97,7 @@ def hybrid_search(
     dense_hits = semantic_search(
         embedder, store, query, top_k=dense_top_k,
         stock_code=stock_code, doc_type=doc_type,
+        date_from=date_from, date_to=date_to,
     )
     for hit in dense_hits:
         hit["dense_score"] = hit.pop("score", None)
@@ -92,7 +105,8 @@ def hybrid_search(
 
     started = time.perf_counter()
     lexical_hits = bm25_index.search(
-        query, top_k=bm25_top_k, stock_code=stock_code, doc_type=doc_type
+        query, top_k=bm25_top_k, stock_code=stock_code, doc_type=doc_type,
+        date_from=date_from, date_to=date_to,
     ) if bm25_index is not None else []
     timings["bm25_ms"] = (time.perf_counter() - started) * 1000
 
@@ -130,6 +144,9 @@ def hybrid_search(
         "query": query,
         "stock_code": stock_code,
         "doc_type": doc_type,
+        "days": days,
+        "date_from": date_from,
+        "date_to": date_to,
         "dense_count": len(dense_hits),
         "bm25_count": len(lexical_hits),
         "fused_count": len(fused),

@@ -35,6 +35,18 @@ def get_stock_basic(code: str) -> dict:
     return row
 
 
+def has_factor_data(code: str) -> bool:
+    """Whether the local factor table covers this stock.
+
+    The local market data only covers part of the market (e.g. 600519 has news
+    and announcements but no daily bars), so the Agent must be able to tell
+    "no quant data" apart from "no such stock".
+    """
+    code = validate_code(code)
+    df = read_sql("SELECT 1 AS present FROM factor_values WHERE stock_code = ? LIMIT 1", (code,))
+    return not df.empty
+
+
 def get_factor_row(code: str, as_of: str | None = None) -> pd.DataFrame:
     """Return the latest factor row (<= as_of when given). Never falls back to latest."""
     code = validate_code(code)
