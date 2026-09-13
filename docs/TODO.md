@@ -34,9 +34,10 @@
 
 ## Step 5 / Step 6（修复计划的后续步骤）
 
-- [ ] `bm25_manifest.json` + 加载时一致性校验（`IndexOutOfSync`）
-- [ ] UTC+8 时区语义统一 + 重跑 `backfill_publish_ts.py`
-- [ ] `rag_tools._to_evidence` 必填字段补 `content` 校验；BM25 命中但回表无正文时显式丢弃并计数
+- [x] `bm25_manifest.json` + 加载时一致性校验（`IndexOutOfSync`）—— 已完成，见 `docs/bm25_index_consistency.md`
+- [x] `rag_tools._to_evidence` 必填字段补 `content` 校验；BM25 命中但回表无正文时显式丢弃并计数
+      —— 已完成（同一批），字段 `dropped_empty_content` 已进入检索诊断与工具返回
+- [ ] **Step 5**：UTC+8 时区语义统一 + 重跑 `backfill_publish_ts.py`（109,554 点 / ~282s）
 
 ## 记录规则
 

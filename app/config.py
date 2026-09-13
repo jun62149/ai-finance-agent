@@ -97,6 +97,10 @@ class Config:
     # >0 = truncate to that many top-scoring candidates (explicit opt-in; a
     # WARNING is logged whenever truncation actually happens).
     BM25_WINDOW = int(os.environ.get("BM25_WINDOW", "0"))
+    # Consistency guard: when the BM25 manifest disagrees with the chunk corpus we
+    # fail loudly (IndexOutOfSync). Set BM25_ALLOW_STALE=1 for offline demos/evals
+    # where a warning is preferable to an exception.
+    BM25_ALLOW_STALE = os.environ.get("BM25_ALLOW_STALE", "0").lower() in ("1", "true", "yes")
     RRF_K = int(os.environ.get("RRF_K", "60"))
     DENSE_TOP_K = int(os.environ.get("DENSE_TOP_K", "20"))
     BM25_TOP_K = int(os.environ.get("BM25_TOP_K", "20"))

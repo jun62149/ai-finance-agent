@@ -37,6 +37,7 @@ REQUIRED_EVIDENCE_FIELDS = (
     "source",
     "publish_time",
     "url",
+    "content",   # a citation the LLM cannot read is not evidence
 )
 
 _SCORE_FIELDS = ("dense_score", "bm25_score", "rrf_score", "rerank_score")
@@ -203,6 +204,7 @@ def search_financial_knowledge(
             "bm25_truncated": outcome.get("bm25_truncated"),
             "bm25_scanned": outcome.get("bm25_scanned"),
             "bm25_after_filter": outcome.get("bm25_after_filter"),
+            "dropped_empty_content": outcome.get("dropped_empty_content", 0),
             "fused": outcome["fused_count"],
             "reranked": outcome["reranked"],
             "rerank_error": outcome["rerank_error"],

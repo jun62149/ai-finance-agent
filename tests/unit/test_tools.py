@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.db import insert_chunks
 from app.errors import InvalidStockCode, StockNotFound
 from app.tools import call_tool, get_tool, list_tools, tool_names, tool_schemas
 from app.tools.errors import ToolArgumentError, ToolNotFound
@@ -72,6 +73,7 @@ class FakeBM25:
                 "stock_code": "000725",
                 "doc_type": "announcement",
                 "bm25_score": 4.77,
+                "content": "截至 2025 年 12 月 31 日，本次回购方案已实施完毕。",
             }
         ]
 
@@ -97,7 +99,25 @@ def rag_components() -> dict:
 
 
 # -------------------------------------------------------------- RAG tool ----
-def test_search_tool_returns_evidence_with_metadata(db_env, rag_components) -> None:
+@pytest.fixture()
+def hydrated_evidence(db_env):
+    """One chunk row so the tool's SQLite hydration can supply the body text."""
+    insert_chunks([
+        {
+            "chunk_id": "announcement-cninfo-000725-abc:c000",
+            "document_id": "announcement-cninfo-000725-abc",
+            "stock_code": "000725", "stock_name": "京东方A", "doc_type": "announcement",
+            "title": "关于回购股份方案实施完毕暨回购实施结果的公告",
+            "source": "cninfo", "publish_time": "2026-01-06", "url": "http://x",
+            "content": "截至 2025 年 12 月 31 日，本次回购方案已实施完毕。",
+            "chunk_index": 0, "chunk_hash": "h1", "embedding_version": None,
+            "created_at": "2026-09-13 00:00:00",
+        }
+    ])
+    return db_env
+
+
+def test_search_tool_returns_evidence_with_metadata(hydrated_evidence, rag_components) -> None:
     outcome = search_financial_knowledge(
         "回购 实施结果", stock_code="000725", doc_type="announcement",
         top_k=3, components=rag_components,
@@ -117,7 +137,7 @@ def test_search_tool_returns_evidence_with_metadata(db_env, rag_components) -> N
     assert evidence["citation"].startswith("关于回购股份方案实施完毕")
 
 
-def test_search_tool_passes_recency_window(db_env, rag_components) -> None:
+def test_search_tool_passes_recency_window(hydrated_evidence, rag_components) -> None:
     """`days` must reach both retrievers as an explicit date window."""
     search_financial_knowledge("回购", days=30, components=rag_components)
 
@@ -163,12 +183,12 @@ def test_search_tool_empty_result_is_explicit(db_env) -> None:
         ({"query": "回购", "days": 99999}, "days"),
     ],
 )
-def test_search_tool_validates_arguments(db_env, rag_components, kwargs, message) -> None:
+def test_search_tool_validates_arguments(hydrated_evidence, rag_components, kwargs, message) -> None:
     with pytest.raises(ToolArgumentError, match=message):
         search_financial_knowledge(components=rag_components, **kwargs)
 
 
-def test_search_tool_rejects_evidence_without_metadata(db_env) -> None:
+def test_search_tool_rejects_evidence_without_metadata(hydrated_evidence) -> None:
     from app.tools.errors import EvidenceMetadataMissing
 
     class NoMetadataStore(FakeStore):

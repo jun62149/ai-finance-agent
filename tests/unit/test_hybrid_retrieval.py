@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.db import insert_chunks
 from app.rag.bm25 import BM25Index, tokenize
 from app.rag.hybrid import reciprocal_rank_fusion
 from app.rag.retrieval import hybrid_search
@@ -92,7 +93,7 @@ def test_bm25_returns_empty_for_unknown_tokens(bm25_index: BM25Index) -> None:
     assert bm25_index.search("   ", top_k=3) == []
 
 
-def test_bm25_save_and_load_roundtrip(bm25_index: BM25Index, tmp_path) -> None:
+def test_bm25_save_and_load_roundtrip(bm25_index: BM25Index, hydrated_db, tmp_path) -> None:
     bm25_index.save(tmp_path)
     loaded = BM25Index.load(tmp_path)
 
@@ -166,8 +167,10 @@ class FakeStore:
 class FakeBM25:
     def search(self, query, top_k=20, stock_code=None, doc_type=None, date_from=None, date_to=None):
         return [
-            {"chunk_id": "c1", "point_id": 1, "bm25_score": 11.5, "stock_code": "000725", "doc_type": "announcement"},
-            {"chunk_id": "c3", "point_id": 3, "bm25_score": 4.2, "stock_code": "600519", "doc_type": "news"},
+            {"chunk_id": "c1", "point_id": 1, "bm25_score": 11.5, "stock_code": "000725",
+             "doc_type": "announcement", "content": "回购进展正文"},
+            {"chunk_id": "c3", "point_id": 3, "bm25_score": 4.2, "stock_code": "600519",
+             "doc_type": "news", "content": "分红派息正文"},
         ]
 
 
@@ -191,7 +194,23 @@ class FakeReranker:
         return (ranked[:top_k] if top_k else ranked), ""
 
 
-def test_hybrid_search_fuses_and_reranks(db_env) -> None:
+@pytest.fixture()
+def hydrated_db(db_env):
+    """Chunk rows for the fake point ids (production hydrates text from SQLite)."""
+    insert_chunks([
+        {
+            "chunk_id": f"c{i}", "document_id": f"d{i}", "stock_code": "000725",
+            "stock_name": "京东方A", "doc_type": "announcement", "title": f"t{i}",
+            "source": "cninfo", "publish_time": "2026-08-01", "url": "http://x",
+            "content": f"第 {i} 条证据正文", "chunk_index": 0,
+            "chunk_hash": f"h{i}", "embedding_version": None, "created_at": "2026-09-13 00:00:00",
+        }
+        for i in (1, 2, 3)
+    ])
+    return db_env
+
+
+def test_hybrid_search_fuses_and_reranks(hydrated_db) -> None:
     outcome = hybrid_search(
         "回购 进展",
         top_k=2,
@@ -212,7 +231,7 @@ def test_hybrid_search_fuses_and_reranks(db_env) -> None:
     assert "dense_ms" in outcome["timings"]
 
 
-def test_hybrid_search_without_rerank_keeps_fusion_order(db_env) -> None:
+def test_hybrid_search_without_rerank_keeps_fusion_order(hydrated_db) -> None:
     outcome = hybrid_search(
         "回购 进展",
         top_k=3,
@@ -227,7 +246,7 @@ def test_hybrid_search_without_rerank_keeps_fusion_order(db_env) -> None:
     assert [item["chunk_id"] for item in outcome["results"]] == ["c1", "c2", "c3"]
 
 
-def test_hybrid_search_degrades_when_reranker_fails(db_env) -> None:
+def test_hybrid_search_degrades_when_reranker_fails(hydrated_db) -> None:
     outcome = hybrid_search(
         "回购 进展",
         top_k=2,

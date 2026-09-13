@@ -54,11 +54,15 @@ def main() -> None:
         rate = done / max(now - t0, 1e-9)
         print(f"  tokenized {done}/{total} ({rate:.0f}/s, {now - t0:.0f}s)")
 
-    index = BM25Index.build(rows, progress=progress)
+    index = BM25Index.build(
+        rows, embedding_version=version, all_chunks=args.all_chunks, progress=progress
+    )
     target = index.save(out_dir)
 
     print("")
     print(f"done in {time.time() - t0:.1f}s | docs={len(index)} | saved to {target}")
+    print(f"manifest: {target / 'manifest.json'} "
+          f"(chunk_id_hash={index.manifest()['chunk_id_hash']})")
     print("next: python scripts/search_hybrid.py \"<query>\"  (dense + bm25 + rrf + rerank)")
 
 

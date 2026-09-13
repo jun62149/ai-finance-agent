@@ -16,19 +16,30 @@ Implementation notes:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import pickle
 import re
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from app.config import Config
+from app.errors import IndexOutOfSync
 from app.log import get_logger
 
 _TOKEN_KEEP = re.compile(r"[\w\u4e00-\u9fff]")
 META_FILE = "chunks_meta.pkl"
+MANIFEST_FILE = "manifest.json"
+MANIFEST_SCHEMA_VERSION = 1
 _LOGGER = get_logger(__name__)
+
+
+def chunk_id_hash(chunk_ids: Iterable[str]) -> str:
+    """Order-independent fingerprint of a chunk-id set (first 16 hex chars)."""
+    joined = "|".join(sorted(str(cid) for cid in chunk_ids))
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:16]
 
 
 def tokenize(text: str) -> list[str]:
@@ -51,10 +62,17 @@ class BM25Index:
         retriever: Any,
         chunk_ids: list[str],
         metadatas: list[dict[str, Any]],
+        *,
+        embedding_version: str | None = None,
+        all_chunks: bool = False,
     ) -> None:
         self.retriever = retriever
         self.chunk_ids = chunk_ids
         self.metadatas = metadatas
+        # Provenance of the corpus this index was built from, persisted in the
+        # manifest so a later load can prove the index still matches the data.
+        self.embedding_version = embedding_version
+        self.all_chunks = all_chunks
 
     def __len__(self) -> int:
         return len(self.chunk_ids)
@@ -65,6 +83,8 @@ class BM25Index:
         cls,
         rows: list[dict[str, Any]],
         *,
+        embedding_version: str | None = None,
+        all_chunks: bool = False,
         progress: Callable[[int, int], None] | None = None,
     ) -> "BM25Index":
         """Build from chunk rows (needs `chunk_id`, `content`, metadata keys)."""
@@ -97,7 +117,30 @@ class BM25Index:
 
         retriever = bm25s.BM25()
         retriever.index(tokenized)
-        return cls(retriever, chunk_ids, metadatas)
+        return cls(
+            retriever, chunk_ids, metadatas,
+            embedding_version=embedding_version, all_chunks=all_chunks,
+        )
+
+    def manifest(self) -> dict[str, Any]:
+        """Small provenance record written next to the index."""
+        try:
+            import bm25s
+
+            bm25s_version = getattr(bm25s, "__version__", "unknown")
+        except Exception:  # noqa: BLE001 - version is informational only
+            bm25s_version = "unknown"
+        return {
+            "schema_version": MANIFEST_SCHEMA_VERSION,
+            "embedding_version": self.embedding_version,
+            "all_chunks": self.all_chunks,
+            "chunk_count": len(self.chunk_ids),
+            "chunk_id_hash": chunk_id_hash(self.chunk_ids),
+            "collection": Config.QDRANT_COLLECTION,
+            "tokenizer": "jieba-cut_for_search",
+            "bm25s_version": bm25s_version,
+            "built_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
 
     def save(self, path: str | Path | None = None) -> Path:
         target = Path(path or Config.BM25_PATH)
@@ -107,7 +150,33 @@ class BM25Index:
             pickle.dump(
                 {"chunk_ids": self.chunk_ids, "metadatas": self.metadatas}, handle
             )
+        (target / MANIFEST_FILE).write_text(
+            json.dumps(self.manifest(), ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         return target
+
+    def verify(self, manifest: dict[str, Any]) -> dict[str, Any]:
+        """Compare the manifest with the current chunk corpus in SQLite.
+
+        Returns a report dict; never raises (callers decide what a mismatch means).
+        """
+        from app.db import fetch_chunks_for_bm25
+
+        version = manifest.get("embedding_version")
+        if manifest.get("all_chunks"):
+            version = None
+        current = [str(row["chunk_id"]) for row in fetch_chunks_for_bm25(version)]
+        current_hash = chunk_id_hash(current)
+        expected_count = int(manifest.get("chunk_count") or 0)
+        expected_hash = str(manifest.get("chunk_id_hash") or "")
+        return {
+            "ok": len(current) == expected_count and current_hash == expected_hash,
+            "expected_count": expected_count,
+            "current_count": len(current),
+            "expected_hash": expected_hash,
+            "current_hash": current_hash,
+            "embedding_version": version,
+        }
 
     @classmethod
     def load(cls, path: str | Path | None = None) -> "BM25Index":
@@ -123,7 +192,41 @@ class BM25Index:
         retriever = bm25s.BM25.load(str(index_dir))
         with meta_file.open("rb") as handle:
             payload = pickle.load(handle)
-        return cls(retriever, payload["chunk_ids"], payload["metadatas"])
+        manifest_file = target / MANIFEST_FILE
+        if not manifest_file.exists():
+            _LOGGER.warning(
+                "BM25 manifest is missing at %s: the index cannot be checked against "
+                "the chunk corpus (rebuild with scripts/build_bm25.py to enable the guard)",
+                target,
+            )
+            return cls(retriever, payload["chunk_ids"], payload["metadatas"])
+
+        manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+        index = cls(
+            retriever, payload["chunk_ids"], payload["metadatas"],
+            embedding_version=manifest.get("embedding_version"),
+            all_chunks=bool(manifest.get("all_chunks")),
+        )
+        report = index.verify(manifest)
+        if report["ok"]:
+            _LOGGER.info(
+                "BM25 index verified: %d chunks (hash %s, embedding_version=%s)",
+                report["current_count"], report["current_hash"],
+                report["embedding_version"],
+            )
+            return index
+
+        message = (
+            f"BM25 index is out of sync: built with {report['expected_count']} chunks "
+            f"(hash {report['expected_hash']}) but the corpus now has "
+            f"{report['current_count']} (hash {report['current_hash']}, "
+            f"embedding_version={report['embedding_version']}); "
+            "rebuild it with `python scripts/build_bm25.py`"
+        )
+        if Config.BM25_ALLOW_STALE:
+            _LOGGER.warning("%s (BM25_ALLOW_STALE=1, continuing anyway)", message)
+            return index
+        raise IndexOutOfSync(message)
 
     @classmethod
     def exists(cls, path: str | Path | None = None) -> bool:

@@ -15,6 +15,7 @@ import time
 from typing import Any
 
 from app.config import Config
+from app.log import get_logger
 from app.rag.bm25 import BM25Index
 from app.rag.embedding import Embedder
 from app.rag.hybrid import reciprocal_rank_fusion
@@ -23,6 +24,7 @@ from app.rag.reranker import Reranker
 from app.rag.vector_store import ChunkVectorStore
 
 _COMPONENTS: dict[str, Any] = {}
+_LOGGER = get_logger(__name__)
 
 
 def get_components(
@@ -136,6 +138,21 @@ def hybrid_search(
             point_id = item.get("point_id")
             if point_id is not None:
                 item["content"] = contents.get(int(point_id), "")
+
+    # A hit whose text cannot be hydrated means the index points at a chunk that
+    # no longer exists (stale index). Returning an empty body would let a broken
+    # citation reach the LLM, so drop it and make the loss visible.
+    empty_ids = {
+        str(item.get("chunk_id")) for item in fused
+        if not str(item.get("content") or "").strip()
+    }
+    if empty_ids:
+        fused = [item for item in fused if str(item.get("chunk_id")) not in empty_ids]
+        _LOGGER.warning(
+            "dropped %d retrieved chunk(s) whose content could not be hydrated "
+            "(stale index? run scripts/build_bm25.py): %s",
+            len(empty_ids), ", ".join(sorted(empty_ids)[:3]),
+        )
     timings["fusion_ms"] = (time.perf_counter() - started) * 1000
 
     results = fused
@@ -168,6 +185,7 @@ def hybrid_search(
         "bm25_after_filter": bm25_diagnostics.get("after_filter"),
         "bm25_corpus": bm25_diagnostics.get("corpus"),
         "fused_count": len(fused),
+        "dropped_empty_content": len(empty_ids),
         "reranked": bool(use_rerank and not rerank_error),
         "rerank_error": rerank_error,
         "timings": timings,

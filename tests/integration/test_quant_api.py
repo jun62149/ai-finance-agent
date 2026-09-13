@@ -137,6 +137,19 @@ def test_rag_search_endpoint_returns_evidence(app_client, monkeypatch):
         def rerank(self, query, candidates, top_k=None):
             return list(candidates)[:top_k], ""
 
+    from app.db import insert_chunks
+
+    insert_chunks([
+        {
+            "chunk_id": "news-eastmoney-000725-abc:c000",
+            "document_id": "news-eastmoney-000725-abc",
+            "stock_code": "000725", "stock_name": "京东方A", "doc_type": "news",
+            "title": "京东方A回购进展", "source": "eastmoney",
+            "publish_time": "2026-08-20 10:00:00", "url": "http://example.com/a",
+            "content": "公司回购进展顺利。", "chunk_index": 0, "chunk_hash": "h1",
+            "embedding_version": None, "created_at": "2026-09-13 00:00:00",
+        }
+    ])
     monkeypatch.setattr(
         rag_tools,
         "get_components",
