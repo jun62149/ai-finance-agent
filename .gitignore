@@ -21,6 +21,7 @@ data/**/*.db-journal
 # Vector store (local Qdrant mode) and Docker volume: rebuilt by scripts
 data/qdrant/
 docker/qdrant_storage/
+data/bm25/
 
 # Trained model binaries
 models/*.pkl

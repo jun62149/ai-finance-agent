@@ -18,7 +18,16 @@ from app.config import Config
 
 
 class Embedder:
-    """Thin wrapper around a sentence-transformers model."""
+    """Thin wrapper around a sentence-transformers model.
+
+    Loading strategy (`EMBEDDING_LOCAL_FILES_ONLY` = auto | 1 | 0):
+    - auto (default): try the local HuggingFace cache first, then the network.
+      This matters because a cached model still triggers remote HEAD checks
+      (and those hang/time out on networks where huggingface.co is blocked).
+    - 1: offline only (fail fast when the model is not cached).
+    - 0: network allowed first.
+    Device fallback (cuda -> default) is retried and reported loudly.
+    """
 
     def __init__(
         self,
@@ -27,16 +36,34 @@ class Embedder:
         batch_size: int | None = None,
         version: str | None = None,
         dim: int | None = None,
+        local_files_only: str | None = None,
     ) -> None:
         self.model_name = model_name or Config.EMBEDDING_MODEL
         self.device = device or Config.EMBEDDING_DEVICE
         self.batch_size = batch_size or Config.EMBEDDING_BATCH_SIZE
         self.version = version or Config.EMBEDDING_VERSION
         self.dim = dim or Config.EMBEDDING_DIM
+        self.local_files_only = str(
+            local_files_only or Config.EMBEDDING_LOCAL_FILES_ONLY
+        ).lower()
         self._model: Any = None
         self._loaded_device = ""
+        self._loaded_local_only = False
 
     # -- model lifecycle ---------------------------------------------------- #
+    def _strategies(self) -> list[tuple[bool, str | None]]:
+        if self.local_files_only == "1":
+            flags = [True]
+        elif self.local_files_only == "0":
+            flags = [False]
+        else:
+            flags = [True, False]
+        devices: list[str | None] = []
+        if self.device and self.device != "auto":
+            devices.append(self.device)
+        devices.append(None)  # let sentence-transformers pick (cpu)
+        return [(flag, device) for flag in flags for device in devices]
+
     def _load(self) -> Any:
         if self._model is not None:
             return self._model
@@ -48,24 +75,44 @@ class Embedder:
                 "pip install sentence-transformers"
             ) from exc
 
-        device = self.device
-        if device and device != "auto":
+        errors: list[str] = []
+        for local_only, device in self._strategies():
             try:
-                self._model = SentenceTransformer(self.model_name, device=device)
-                self._loaded_device = device
-                return self._model
-            except Exception as exc:  # noqa: BLE001 - fall back to CPU loudly
-                print(
-                    f"[warn] could not load {self.model_name} on device={device} "
-                    f"({type(exc).__name__}: {exc}); falling back to cpu"
+                model = SentenceTransformer(
+                    self.model_name, device=device, local_files_only=local_only
                 )
-        self._model = SentenceTransformer(self.model_name)
-        self._loaded_device = "cpu(default)"
-        return self._model
+            except Exception as exc:  # noqa: BLE001 - try the next strategy
+                errors.append(
+                    f"local_files_only={local_only} device={device}: "
+                    f"{type(exc).__name__}: {exc}"
+                )
+                continue
+            self._model = model
+            self._loaded_device = device or "default"
+            self._loaded_local_only = local_only
+            if not local_only:
+                print(
+                    f"[info] loaded {self.model_name} from the Hub "
+                    "(not in the local cache)"
+                )
+            elif errors:
+                print(f"[warn] falling back after: {errors[-1]}")
+            return self._model
+
+        raise RuntimeError(
+            f"could not load embedding model {self.model_name!r}. Tried: "
+            + " | ".join(errors)
+            + ". If the model must be downloaded, set HF_ENDPOINT="
+            "https://hf-mirror.com (or pre-download it)."
+        )
 
     @property
     def loaded_device(self) -> str:
         return self._loaded_device
+
+    @property
+    def loaded_local_only(self) -> bool:
+        return self._loaded_local_only
 
     # -- inference ---------------------------------------------------------- #
     def encode(self, texts: Iterable[str]) -> list[list[float]]:

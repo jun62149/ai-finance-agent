@@ -389,6 +389,28 @@ def set_chunks_embedding_version(ids: list[int], version: str) -> int:
     return int(updated)
 
 
+def fetch_chunks_for_bm25(version: str | None = None) -> list[dict]:
+    """Chunk rows used to build the BM25 index (same corpus as the vectors)."""
+    init_db()
+    where = ""
+    params: tuple = ()
+    if version:
+        where = "WHERE embedding_version = ?"
+        params = (version,)
+    with connect() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT id, chunk_id, document_id, stock_code, stock_name, doc_type,
+                   title, source, publish_time, url, chunk_index, content
+            FROM chunks
+            {where}
+            ORDER BY id
+            """,
+            params,
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def fetch_chunk_contents(ids: list[int]) -> dict[int, str]:
     """Map chunk row ids -> content (Qdrant stores metadata; text stays here)."""
     if not ids:

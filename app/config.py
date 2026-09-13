@@ -55,9 +55,24 @@ class Config:
     EMBEDDING_BATCH_SIZE = int(os.environ.get("EMBEDDING_BATCH_SIZE", "16"))
     EMBEDDING_VERSION = os.environ.get("EMBEDDING_VERSION", "bge-m3-v1")
     EMBEDDING_DIM = int(os.environ.get("EMBEDDING_DIM", "1024"))
+    # auto = try the local HF cache first, then the network; 1 = offline only;
+    # 0 = network first. A cached model still triggers remote HEAD checks, which
+    # hang on networks where huggingface.co is unreachable.
+    EMBEDDING_LOCAL_FILES_ONLY = os.environ.get("EMBEDDING_LOCAL_FILES_ONLY", "auto")
 
     # Qdrant local (embedded) mode by default: same API as the server, so
     # switching to a Docker service later only changes the connection target.
     QDRANT_PATH = _env_path("QDRANT_PATH", DATA_DIR / "qdrant")
     QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "financial_chunks")
     QDRANT_URL = os.environ.get("QDRANT_URL", "")  # set to use a Qdrant server
+
+    # Phase 3: hybrid retrieval (dense + BM25 -> RRF -> reranker)
+    BM25_PATH = _env_path("BM25_PATH", DATA_DIR / "bm25")
+    RRF_K = int(os.environ.get("RRF_K", "60"))
+    DENSE_TOP_K = int(os.environ.get("DENSE_TOP_K", "20"))
+    BM25_TOP_K = int(os.environ.get("BM25_TOP_K", "20"))
+    FUSION_TOP_K = int(os.environ.get("FUSION_TOP_K", "15"))
+    RERANK_TOP_K = int(os.environ.get("RERANK_TOP_K", "5"))
+    RERANKER_MODEL = os.environ.get("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
+    RERANKER_DEVICE = os.environ.get("RERANKER_DEVICE", EMBEDDING_DEVICE)
+    RERANKER_ENABLED = os.environ.get("RERANKER_ENABLED", "1").lower() not in ("0", "false", "no")
