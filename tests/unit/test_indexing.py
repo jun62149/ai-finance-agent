@@ -165,3 +165,24 @@ def test_dimension_mismatch_raises(chunk_db, store) -> None:
 
     with pytest.raises(ValueError, match="dimension mismatch"):
         build_embeddings(WrongDim(), store, version=VERSION)
+
+
+def test_upsert_derives_publish_ts_for_date_filters(tmp_path) -> None:
+    """Regression: a payload without publish_ts would be invisible to `days` filters."""
+    from app.rag.vector_store import ChunkVectorStore, publish_ts_from
+
+    store = ChunkVectorStore(path=str(tmp_path / "qdrant"), collection="ts", dim=DIM)
+    try:
+        store.ensure_collection()
+        store.upsert_chunks(
+            [1],
+            [[1.0, 0.0, 0.0, 0.0]],
+            [{"chunk_id": "c1", "publish_time": "2026-08-15 10:00:00"}],  # no publish_ts
+        )
+        hit = store.search([1.0, 0, 0, 0], top_k=1)[0]
+        assert hit["publish_ts"] == publish_ts_from("2026-08-15 10:00:00")
+        # and it is therefore reachable through a date window
+        assert store.search([1.0, 0, 0, 0], top_k=1, date_from="2026-08-01", date_to="2026-08-31")
+        assert not store.search([1.0, 0, 0, 0], top_k=1, date_from="2026-09-01")
+    finally:
+        store.close()

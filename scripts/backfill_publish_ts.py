@@ -25,7 +25,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.config import Config
-from app.rag.vector_store import ChunkVectorStore
+from app.rag.vector_store import ChunkVectorStore, publish_ts_from
 
 
 def _epoch(publish_time: str) -> int | None:
@@ -79,7 +79,7 @@ def main() -> None:
                 if payload.get("publish_ts") is not None:
                     already += 1
                     continue
-                epoch = _epoch(payload.get("publish_time"))
+                epoch = publish_ts_from(payload.get("publish_time"))
                 if epoch is None:
                     missing_time += 1
                     continue

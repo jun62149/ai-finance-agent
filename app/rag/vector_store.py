@@ -31,6 +31,17 @@ PAYLOAD_FIELDS = (
 )
 
 
+def publish_ts_from(value: Any, *, end_of_day: bool = False) -> int | None:
+    """Epoch seconds for a `publish_time` string, or None when unparsable."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return _date_to_epoch(text, end_of_day=end_of_day)
+    except ValueError:
+        return None
+
+
 def _date_to_epoch(value: str, *, end_of_day: bool = False) -> int:
     """Convert a YYYY-MM-DD (or ISO datetime) string to an epoch second.
 
@@ -165,16 +176,20 @@ class ChunkVectorStore:
         total = 0
         for start in range(0, len(point_ids), batch_size):
             end = start + batch_size
-            points = [
-                PointStruct(
-                    id=int(point_ids[i]),
-                    vector=list(map(float, vectors[i])),
-                    payload={
-                        key: payloads[i].get(key) for key in PAYLOAD_FIELDS
-                    },
+            points = []
+            for i in range(start, min(end, len(point_ids))):
+                payload = {key: payloads[i].get(key) for key in PAYLOAD_FIELDS}
+                # Derive publish_ts here too: it is what date filters range over,
+                # and a point without it is invisible to any date-filtered query.
+                if payload.get("publish_ts") is None:
+                    payload["publish_ts"] = publish_ts_from(payload.get("publish_time"))
+                points.append(
+                    PointStruct(
+                        id=int(point_ids[i]),
+                        vector=list(map(float, vectors[i])),
+                        payload=payload,
+                    )
                 )
-                for i in range(start, min(end, len(point_ids)))
-            ]
             self.client.upsert(self.collection, points=points, wait=True)
             total += len(points)
         return total
