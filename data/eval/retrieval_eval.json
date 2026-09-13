@@ -1,0 +1,1812 @@
+{
+  "description": "Retrieval evaluation set. Labels are resolved from SQLite by explicit specs (stock / doc_type / date window / title keywords) and frozen here.",
+  "categories": {
+    "code": 6,
+    "name": 8,
+    "date": 5,
+    "doctype": 6,
+    "semantic": 11
+  },
+  "queries": [
+    {
+      "id": "A01",
+      "category": "code",
+      "query": "600519 半年度报告",
+      "stock_code": "600519",
+      "doc_type": "announcement",
+      "title_any": [
+        "半年度报告"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-600519-2c154ed489ac5563",
+        "announcement-cninfo-600519-d926b02fac6f0141"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-600519-2c154ed489ac5563",
+          "stock_code": "600519",
+          "title": "贵州茅台2026年半年度报告摘要",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-15"
+        },
+        {
+          "document_id": "announcement-cninfo-600519-d926b02fac6f0141",
+          "stock_code": "600519",
+          "title": "贵州茅台2026年半年度报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-15"
+        }
+      ],
+      "relevant_count": 2
+    },
+    {
+      "id": "A02",
+      "category": "code",
+      "query": "000725 回购实施结果",
+      "stock_code": "000725",
+      "doc_type": "announcement",
+      "title_all": [
+        "回购",
+        "实施结果"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000725-7fa96eac2d8b5953",
+        "announcement-cninfo-000725-fc1cf3ba772cbb7d"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000725-7fa96eac2d8b5953",
+          "stock_code": "000725",
+          "title": "关于回购股份方案实施完毕暨回购实施结果的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-05-30"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-fc1cf3ba772cbb7d",
+          "stock_code": "000725",
+          "title": "关于回购股份方案实施完毕暨回购实施结果的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-01-06"
+        }
+      ],
+      "relevant_count": 2
+    },
+    {
+      "id": "A03",
+      "category": "code",
+      "query": "002466 限制性股票 回购注销 通知债权人",
+      "stock_code": "002466",
+      "doc_type": "announcement",
+      "title_all": [
+        "限制性股票",
+        "通知债权人"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-002466-4fcaded1af56fc72"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-002466-4fcaded1af56fc72",
+          "stock_code": "002466",
+          "title": "关于回购注销2024年A股限制性股票激励计划部分限制性股票暨通知债权人的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-30"
+        }
+      ],
+      "relevant_count": 1
+    },
+    {
+      "id": "A04",
+      "category": "code",
+      "query": "000823 可转换公司债券 转股情况",
+      "stock_code": "000823",
+      "doc_type": "announcement",
+      "title_any": [
+        "转股"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000823-a24739b0c2565f2f",
+        "announcement-cninfo-000823-c9618630c160cd06",
+        "announcement-cninfo-000823-01758c0761d5228c",
+        "announcement-cninfo-000823-4a0188e38b98d1f5",
+        "announcement-cninfo-000823-0fb81e602ca69601",
+        "announcement-cninfo-000823-1fff4bbbffc0cef9",
+        "announcement-cninfo-000823-79a63b160f87e87d",
+        "announcement-cninfo-000823-7e97b46b5ad68b6b",
+        "announcement-cninfo-000823-ee4c0a0b5beaa564",
+        "announcement-cninfo-000823-1ee68cb3d8cbd7c8",
+        "announcement-cninfo-000823-b4acb0dfa0640deb",
+        "announcement-cninfo-000823-98c510ee7474cd14"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000823-a24739b0c2565f2f",
+          "stock_code": "000823",
+          "title": "超声电子关于超声转债即将停止转股暨赎回前最后一个交易日的重要提示性公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-12"
+        },
+        {
+          "document_id": "announcement-cninfo-000823-c9618630c160cd06",
+          "stock_code": "000823",
+          "title": "超声电子关于超声转债即将停止转股暨赎回前最后半个交易日的重要提示性公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-12"
+        },
+        {
+          "document_id": "announcement-cninfo-000823-01758c0761d5228c",
+          "stock_code": "000823",
+          "title": "超声电子关于超声转债转股数量累计达到转股前公司已发行股份总额10%的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-11"
+        },
+        {
+          "document_id": "announcement-cninfo-000823-4a0188e38b98d1f5",
+          "stock_code": "000823",
+          "title": "超声电子关于超声转债即将停止转股的重要提示性公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-11"
+        },
+        {
+          "document_id": "announcement-cninfo-000823-0fb81e602ca69601",
+          "stock_code": "000823",
+          "title": "超声电子关于超声转债即将停止转股的重要提示性公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-10"
+        }
+      ],
+      "relevant_count": 12
+    },
+    {
+      "id": "A05",
+      "category": "code",
+      "query": "000776 永续次级债券 发行结果",
+      "stock_code": "000776",
+      "doc_type": "announcement",
+      "title_all": [
+        "永续次级债券",
+        "发行结果"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000776-05ca57df0659d1bb",
+        "announcement-cninfo-000776-0913bb45d0e6ca2c",
+        "announcement-cninfo-000776-813bf2279ca5dd13",
+        "announcement-cninfo-000776-70ef19edaca8bbde"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000776-05ca57df0659d1bb",
+          "stock_code": "000776",
+          "title": "广发证券股份有限公司2026年面向专业投资者公开发行永续次级债券(第三期)发行结果公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-05-18"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-0913bb45d0e6ca2c",
+          "stock_code": "000776",
+          "title": "广发证券股份有限公司2026年面向专业投资者公开发行永续次级债券(第二期)发行结果公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-23"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-813bf2279ca5dd13",
+          "stock_code": "000776",
+          "title": "广发证券股份有限公司2026年面向专业投资者公开发行永续次级债券(第一期)发行结果公告(以此为准)",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-12"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-70ef19edaca8bbde",
+          "stock_code": "000776",
+          "title": "广发证券股份有限公司2026年面向专业投资者公开发行永续次级债券(第一期)发行结果公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-02-10"
+        }
+      ],
+      "relevant_count": 4
+    },
+    {
+      "id": "A06",
+      "category": "code",
+      "query": "000688 重大资产购买 独立财务顾问报告",
+      "stock_code": "000688",
+      "doc_type": "announcement",
+      "title_all": [
+        "重大资产购买",
+        "独立财务顾问"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000688-cc6d53f677307a21",
+        "announcement-cninfo-000688-c90c154f6178aee7",
+        "announcement-cninfo-000688-b821364e810ae843",
+        "announcement-cninfo-000688-5361e23b4ac84dba",
+        "announcement-cninfo-000688-3ff4c85f787f1a6c"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000688-cc6d53f677307a21",
+          "stock_code": "000688",
+          "title": "联储证券股份有限公司关于国城矿业股份有限公司重大资产购买暨关联交易实施情况之独立财务顾问核查意见",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-19"
+        },
+        {
+          "document_id": "announcement-cninfo-000688-c90c154f6178aee7",
+          "stock_code": "000688",
+          "title": "联储证券股份有限公司关于国城矿业股份有限公司重大资产购买暨关联交易之独立财务顾问报告(修订稿)",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000688-b821364e810ae843",
+          "stock_code": "000688",
+          "title": "联储证券股份有限公司关于国城矿业股份有限公司重大资产购买暨关联交易之独立财务顾问报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-05-23"
+        },
+        {
+          "document_id": "announcement-cninfo-000688-5361e23b4ac84dba",
+          "stock_code": "000688",
+          "title": "联储证券股份有限公司关于国城矿业股份有限公司重大资产购买暨关联交易实施情况之独立财务顾问核查意见",
+          "doc_type": "announcement",
+          "publish_time": "2025-12-30"
+        },
+        {
+          "document_id": "announcement-cninfo-000688-3ff4c85f787f1a6c",
+          "stock_code": "000688",
+          "title": "联储证券股份有限公司关于国城矿业重大资产购买暨关联交易之独立财务顾问报告(修订稿)",
+          "doc_type": "announcement",
+          "publish_time": "2025-12-16"
+        }
+      ],
+      "relevant_count": 5
+    },
+    {
+      "id": "B01",
+      "category": "name",
+      "query": "京东方A 股份回购的进展与实施结果",
+      "stock_code": "000725",
+      "doc_type": "announcement",
+      "title_any": [
+        "回购"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000725-d0f46092267245c1",
+        "announcement-cninfo-000725-d3fe64d5cf5fd4dd",
+        "announcement-cninfo-000725-65e21675d2c1420a",
+        "announcement-cninfo-000725-7d4aff2d1ff268af",
+        "announcement-cninfo-000725-99ad41fa9ec2e8b9",
+        "announcement-cninfo-000725-2f2ff9a25d5a8f0f",
+        "announcement-cninfo-000725-a1273a840437c55c",
+        "announcement-cninfo-000725-0b9b347978614e7b",
+        "announcement-cninfo-000725-9f23e58b0359f7c2",
+        "announcement-cninfo-000725-e691c1a7de810683",
+        "announcement-cninfo-000725-7fa96eac2d8b5953",
+        "announcement-cninfo-000725-184e9e3998fe8b63",
+        "announcement-cninfo-000725-b9c3b2e417ef0595",
+        "announcement-cninfo-000725-f7849fe7ff2db3c5",
+        "announcement-cninfo-000725-a5d7d27fce9f7bf1",
+        "announcement-cninfo-000725-63fa933edca028e8",
+        "announcement-cninfo-000725-39bc83c96ba42fed",
+        "announcement-cninfo-000725-bfbee9da83bf7869",
+        "announcement-cninfo-000725-d132cfd66aab545e",
+        "announcement-cninfo-000725-aebf23ab4892fa2c",
+        "announcement-cninfo-000725-c0ffef9554821a4c",
+        "announcement-cninfo-000725-8f5347d14c29bcaf",
+        "announcement-cninfo-000725-7507636a4d05338d",
+        "announcement-cninfo-000725-17ae4305c441330c",
+        "announcement-cninfo-000725-e1748bbec0b62857",
+        "announcement-cninfo-000725-6bbecd4906246e28",
+        "announcement-cninfo-000725-fc1cf3ba772cbb7d",
+        "announcement-cninfo-000725-ddfb263fc3884c85",
+        "announcement-cninfo-000725-e98fa63835ffc13f",
+        "announcement-cninfo-000725-ea853361a33269a3"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000725-d0f46092267245c1",
+          "stock_code": "000725",
+          "title": "关于回购公司股份的进展公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-09-01"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-d3fe64d5cf5fd4dd",
+          "stock_code": "000725",
+          "title": "关于回购公司股份的进展公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-05"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-65e21675d2c1420a",
+          "stock_code": "000725",
+          "title": "关于首次回购公司部分社会公众股份暨回购股份进展公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-21"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-7d4aff2d1ff268af",
+          "stock_code": "000725",
+          "title": "关于调整股票期权行权价格和限制性股票回购价格的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-07"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-99ad41fa9ec2e8b9",
+          "stock_code": "000725",
+          "title": "董事会提名薪酬考核委员会关于调整股票期权行权价格和限制性股票回购价格的核查意见",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-07"
+        }
+      ],
+      "relevant_count": 30
+    },
+    {
+      "id": "B02",
+      "category": "name",
+      "query": "贵州茅台上半年的营业收入和净利润表现",
+      "stock_code": "600519",
+      "title_any": [
+        "半年度报告"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-600519-2c154ed489ac5563",
+        "announcement-cninfo-600519-d926b02fac6f0141"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-600519-2c154ed489ac5563",
+          "stock_code": "600519",
+          "title": "贵州茅台2026年半年度报告摘要",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-15"
+        },
+        {
+          "document_id": "announcement-cninfo-600519-d926b02fac6f0141",
+          "stock_code": "600519",
+          "title": "贵州茅台2026年半年度报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-15"
+        }
+      ],
+      "relevant_count": 2
+    },
+    {
+      "id": "B03",
+      "category": "name",
+      "query": "潍柴动力中期分红派息后调整回购股份价格上限",
+      "stock_code": "000338",
+      "doc_type": "announcement",
+      "title_any": [
+        "价格上限"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000338-befddba841571c17"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000338-befddba841571c17",
+          "stock_code": "000338",
+          "title": "潍柴动力股份有限公司关于2025年中期分红派息实施后调整回购公司部分A股股份价格上限的公告",
+          "doc_type": "announcement",
+          "publish_time": "2025-10-18"
+        }
+      ],
+      "relevant_count": 1
+    },
+    {
+      "id": "B04",
+      "category": "name",
+      "query": "广发证券债券发行结果公告",
+      "stock_code": "000776",
+      "doc_type": "announcement",
+      "title_any": [
+        "发行结果"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000776-d0b4f805d5777ebf",
+        "announcement-cninfo-000776-bac7fd9230088c16",
+        "announcement-cninfo-000776-f08a1aae82d79a79",
+        "announcement-cninfo-000776-100038fa60ad67c2",
+        "announcement-cninfo-000776-c96b179c424fb5c4",
+        "announcement-cninfo-000776-05ca57df0659d1bb",
+        "announcement-cninfo-000776-8735a6d496b708d3",
+        "announcement-cninfo-000776-e3dda2390928351d",
+        "announcement-cninfo-000776-72677951237cb62f",
+        "announcement-cninfo-000776-0913bb45d0e6ca2c",
+        "announcement-cninfo-000776-688c5d6c58bf1672",
+        "announcement-cninfo-000776-813bf2279ca5dd13",
+        "announcement-cninfo-000776-5014909c31aa2bf4",
+        "announcement-cninfo-000776-70ef19edaca8bbde",
+        "announcement-cninfo-000776-3fdd63a75799da52",
+        "announcement-cninfo-000776-fc1a3784ff22baed",
+        "announcement-cninfo-000776-b4a386121828f4de",
+        "announcement-cninfo-000776-7cd90cba4429548a"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000776-d0b4f805d5777ebf",
+          "stock_code": "000776",
+          "title": "广发证券股份有限公司2026年面向专业投资者公开发行短期公司债券(第五期)发行结果公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-16"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-bac7fd9230088c16",
+          "stock_code": "000776",
+          "title": "广发证券股份有限公司2026年面向专业投资者公开发行公司债券(第六期)发行结果公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-09"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-f08a1aae82d79a79",
+          "stock_code": "000776",
+          "title": "广发证券股份有限公司2026年面向专业投资者公开发行公司债券(第五期)发行结果公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-11"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-100038fa60ad67c2",
+          "stock_code": "000776",
+          "title": "广发证券股份有限公司2026年面向专业投资者公开发行次级债券(第二期)发行结果公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-04"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-c96b179c424fb5c4",
+          "stock_code": "000776",
+          "title": "广发证券股份有限公司2026年面向专业投资者公开发行公司债券(第四期)发行结果公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-05-28"
+        }
+      ],
+      "relevant_count": 18
+    },
+    {
+      "id": "B05",
+      "category": "name",
+      "query": "安泰科技转让产业基金份额",
+      "stock_code": "000969",
+      "doc_type": "announcement",
+      "title_any": [
+        "产业基金"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000969-6fec4d519674c537"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000969-6fec4d519674c537",
+          "stock_code": "000969",
+          "title": "安泰科技股份有限公司关于转让其他权益工具投资中持有的启赋安泰(常州)新材料产业基金合伙企业(有限合伙)18.6130%财产份额的进展公告",
+          "doc_type": "announcement",
+          "publish_time": "2025-11-26"
+        }
+      ],
+      "relevant_count": 1
+    },
+    {
+      "id": "B06",
+      "category": "name",
+      "query": "超声电子对控股子公司增资",
+      "stock_code": "000823",
+      "doc_type": "announcement",
+      "title_any": [
+        "增资"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000823-96e2592821f0b55b",
+        "announcement-cninfo-000823-8c95510a7f420930"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000823-96e2592821f0b55b",
+          "stock_code": "000823",
+          "title": "超声电子关于对控股子公司汕头超声印制板(三厂)有限公司增资的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-02-10"
+        },
+        {
+          "document_id": "announcement-cninfo-000823-8c95510a7f420930",
+          "stock_code": "000823",
+          "title": "超声电子关于对控股子公司汕头超声印制板公司增资的公告",
+          "doc_type": "announcement",
+          "publish_time": "2025-09-30"
+        }
+      ],
+      "relevant_count": 2
+    },
+    {
+      "id": "B07",
+      "category": "name",
+      "query": "深桑达A 诉讼 由盈转亏",
+      "stock_code": "000032",
+      "doc_type": "news",
+      "title_any": [
+        "诉讼"
+      ],
+      "relevant_document_ids": [
+        "news-eastmoney-000032-0ecae9a0066e0e2f",
+        "news-eastmoney-000032-3e9525e8fd8dd574"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "news-eastmoney-000032-0ecae9a0066e0e2f",
+          "stock_code": "000032",
+          "title": "深桑达A新增诉讼185件!涉案金额总计高达9.49亿元 公司上半年预计增亏",
+          "doc_type": "news",
+          "publish_time": "2026-07-22 23:20:34"
+        },
+        {
+          "document_id": "news-eastmoney-000032-3e9525e8fd8dd574",
+          "stock_code": "000032",
+          "title": "涉案金额超7亿元!深桑达A及控股子公司新增诉讼191件,2025年由盈转亏",
+          "doc_type": "news",
+          "publish_time": "2026-03-11 20:55:10"
+        }
+      ],
+      "relevant_count": 2
+    },
+    {
+      "id": "B08",
+      "category": "name",
+      "query": "国城矿业 重大资产购买暨关联交易",
+      "stock_code": "000688",
+      "doc_type": "announcement",
+      "title_any": [
+        "重大资产购买"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000688-cc6d53f677307a21",
+        "announcement-cninfo-000688-76852650be39b174",
+        "announcement-cninfo-000688-7f10b6036a63a398",
+        "announcement-cninfo-000688-97d02bb2b5036f7e",
+        "announcement-cninfo-000688-d03a8e56b79537dd",
+        "announcement-cninfo-000688-c90c154f6178aee7",
+        "announcement-cninfo-000688-4417fc6b4e8facb8",
+        "announcement-cninfo-000688-ebd1d04e3cef8978",
+        "announcement-cninfo-000688-da0bc403da18c444",
+        "announcement-cninfo-000688-d322c1b918bf8560",
+        "announcement-cninfo-000688-1d7ed47117085571",
+        "announcement-cninfo-000688-5c5b05dd7e6da35d",
+        "announcement-cninfo-000688-c555a462ba7062e8",
+        "announcement-cninfo-000688-6c751ebc9d6c1e54",
+        "announcement-cninfo-000688-b821364e810ae843",
+        "announcement-cninfo-000688-95d6fea358a9fcc3",
+        "announcement-cninfo-000688-c459de0ad01f7b34",
+        "announcement-cninfo-000688-5361e23b4ac84dba",
+        "announcement-cninfo-000688-505725352582050d",
+        "announcement-cninfo-000688-fd8337ce23009295",
+        "announcement-cninfo-000688-03a7b3a1f4533a42",
+        "announcement-cninfo-000688-6b795cec0e86f8b4",
+        "announcement-cninfo-000688-efb6376911d32e3a",
+        "announcement-cninfo-000688-7f8771744d0f1495",
+        "announcement-cninfo-000688-a52d224820d25688",
+        "announcement-cninfo-000688-3ff4c85f787f1a6c",
+        "announcement-cninfo-000688-a33b4e7576b4fb8e",
+        "announcement-cninfo-000688-337e6f4226cd6003",
+        "announcement-cninfo-000688-2453299313cd7999"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000688-cc6d53f677307a21",
+          "stock_code": "000688",
+          "title": "联储证券股份有限公司关于国城矿业股份有限公司重大资产购买暨关联交易实施情况之独立财务顾问核查意见",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-19"
+        },
+        {
+          "document_id": "announcement-cninfo-000688-76852650be39b174",
+          "stock_code": "000688",
+          "title": "重大资产购买暨关联交易实施情况报告书",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-19"
+        },
+        {
+          "document_id": "announcement-cninfo-000688-7f10b6036a63a398",
+          "stock_code": "000688",
+          "title": "关于重大资产购买暨关联交易报告书(草案)修订的说明",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000688-97d02bb2b5036f7e",
+          "stock_code": "000688",
+          "title": "独立董事关于《关于对国城矿业股份有限公司重大资产购买暨关联交易的问询函》的专项意见",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000688-d03a8e56b79537dd",
+          "stock_code": "000688",
+          "title": "关于回复深圳证券交易所《关于对国城矿业股份有限公司重大资产购买暨关联交易的问询函》的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-31"
+        }
+      ],
+      "relevant_count": 29
+    },
+    {
+      "id": "C01",
+      "category": "date",
+      "query": "600519 在 2026 年 8 月发布的公告",
+      "stock_code": "600519",
+      "doc_type": "announcement",
+      "date_from": "2026-08-01",
+      "date_to": "2026-08-31",
+      "relevant_document_ids": [
+        "announcement-cninfo-600519-50b2211cd9745123",
+        "announcement-cninfo-600519-2c154ed489ac5563",
+        "announcement-cninfo-600519-2a74138d114c6832",
+        "announcement-cninfo-600519-8a3f00d4591db9fb",
+        "announcement-cninfo-600519-8f0f848d603d26e3",
+        "announcement-cninfo-600519-d926b02fac6f0141"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-600519-50b2211cd9745123",
+          "stock_code": "600519",
+          "title": "贵州茅台关于召开2026年半年度业绩说明会的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-15"
+        },
+        {
+          "document_id": "announcement-cninfo-600519-2c154ed489ac5563",
+          "stock_code": "600519",
+          "title": "贵州茅台2026年半年度报告摘要",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-15"
+        },
+        {
+          "document_id": "announcement-cninfo-600519-2a74138d114c6832",
+          "stock_code": "600519",
+          "title": "贵州茅台第五届董事会2026年度第三次会议决议公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-15"
+        },
+        {
+          "document_id": "announcement-cninfo-600519-8a3f00d4591db9fb",
+          "stock_code": "600519",
+          "title": "贵州茅台关于贵州茅台集团财务有限公司的风险评估报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-15"
+        },
+        {
+          "document_id": "announcement-cninfo-600519-8f0f848d603d26e3",
+          "stock_code": "600519",
+          "title": "贵州茅台关于会计政策变更的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-15"
+        }
+      ],
+      "relevant_count": 6
+    },
+    {
+      "id": "C02",
+      "category": "date",
+      "query": "京东方A 2026 年 1 月的投资者关系活动记录",
+      "stock_code": "000725",
+      "doc_type": "announcement",
+      "title_any": [
+        "投资者关系活动"
+      ],
+      "date_from": "2026-01-01",
+      "date_to": "2026-01-31",
+      "relevant_document_ids": [
+        "announcement-cninfo-000725-85cf9203e548495f",
+        "announcement-cninfo-000725-f6de5da861e080f6",
+        "announcement-cninfo-000725-0f83d985914d61f1",
+        "announcement-cninfo-000725-e33eff79140d57cd"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000725-85cf9203e548495f",
+          "stock_code": "000725",
+          "title": "003-2026年1月22日投资者关系活动记录表",
+          "doc_type": "announcement",
+          "publish_time": "2026-01-23"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-f6de5da861e080f6",
+          "stock_code": "000725",
+          "title": "004-2026年1月22日投资者关系活动记录表",
+          "doc_type": "announcement",
+          "publish_time": "2026-01-23"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-0f83d985914d61f1",
+          "stock_code": "000725",
+          "title": "002-2026年1月7日投资者关系活动记录表",
+          "doc_type": "announcement",
+          "publish_time": "2026-01-08"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-e33eff79140d57cd",
+          "stock_code": "000725",
+          "title": "001-2026年1月5日投资者关系活动记录表",
+          "doc_type": "announcement",
+          "publish_time": "2026-01-06"
+        }
+      ],
+      "relevant_count": 4
+    },
+    {
+      "id": "C03",
+      "category": "date",
+      "query": "广发证券 2026 年 3 月披露的年度报告相关公告",
+      "stock_code": "000776",
+      "doc_type": "announcement",
+      "title_any": [
+        "年度报告"
+      ],
+      "date_from": "2026-03-01",
+      "date_to": "2026-03-31",
+      "relevant_document_ids": [
+        "announcement-cninfo-000776-08f412d74178840d",
+        "announcement-cninfo-000776-4c2d2cc2aee12f1f"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000776-08f412d74178840d",
+          "stock_code": "000776",
+          "title": "2025年年度报告摘要",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-4c2d2cc2aee12f1f",
+          "stock_code": "000776",
+          "title": "2025年年度报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        }
+      ],
+      "relevant_count": 2
+    },
+    {
+      "id": "C04",
+      "category": "date",
+      "query": "美的集团 2026 年 3 月 31 日的公告",
+      "stock_code": "000333",
+      "doc_type": "announcement",
+      "date_from": "2026-03-31",
+      "date_to": "2026-03-31",
+      "relevant_document_ids": [
+        "announcement-cninfo-000333-4302b3ca460d119e",
+        "announcement-cninfo-000333-cbd1ad48c5aea904",
+        "announcement-cninfo-000333-8f667b095810ef03",
+        "announcement-cninfo-000333-5e4b1f7007e5b251",
+        "announcement-cninfo-000333-e544af385a67f4db",
+        "announcement-cninfo-000333-ba3fc43e280fbec9",
+        "announcement-cninfo-000333-8bd483a749b18fdd",
+        "announcement-cninfo-000333-139e9ebaae5c6614",
+        "announcement-cninfo-000333-4cce6ad058afe05c",
+        "announcement-cninfo-000333-2b76b15975463c83",
+        "announcement-cninfo-000333-d4972add69feed36",
+        "announcement-cninfo-000333-573a3d2ff82764fd",
+        "announcement-cninfo-000333-875a76439aa07d1d",
+        "announcement-cninfo-000333-9804ae73d392a589",
+        "announcement-cninfo-000333-32decfbd3e2a1c4e",
+        "announcement-cninfo-000333-37bf9a7b59bfedf2",
+        "announcement-cninfo-000333-2e2b7e64b24b3251",
+        "announcement-cninfo-000333-b2796679b4d97930",
+        "announcement-cninfo-000333-81caa5c460ea07c8",
+        "announcement-cninfo-000333-2459408bd5b92916",
+        "announcement-cninfo-000333-ba621545ada42f1f",
+        "announcement-cninfo-000333-42a3fbc9a2b0d710",
+        "announcement-cninfo-000333-4bb8d516b7432c76",
+        "announcement-cninfo-000333-83cecc9628e6cd6c",
+        "announcement-cninfo-000333-fc155dbb9cfda0a5",
+        "announcement-cninfo-000333-ab135831adaaefef",
+        "announcement-cninfo-000333-99081561a645ccd5",
+        "announcement-cninfo-000333-83335f49c8e0ed01",
+        "announcement-cninfo-000333-6e9a4342db33652d",
+        "announcement-cninfo-000333-fb9d1b2fce1e34eb",
+        "announcement-cninfo-000333-6b46fd27b9877c7b",
+        "announcement-cninfo-000333-f6d18b8184dee131",
+        "announcement-cninfo-000333-4ffec655a2837c4a",
+        "announcement-cninfo-000333-907c70e981d38b34"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000333-4302b3ca460d119e",
+          "stock_code": "000333",
+          "title": "关于以集中竞价方式回购公司A股股份方案的公告暨回购股份报告书",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000333-cbd1ad48c5aea904",
+          "stock_code": "000333",
+          "title": "2026年A股持股计划(草案)",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000333-8f667b095810ef03",
+          "stock_code": "000333",
+          "title": "2026年A股持股计划(草案)摘要",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000333-5e4b1f7007e5b251",
+          "stock_code": "000333",
+          "title": "2026年A股持股计划管理办法",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000333-e544af385a67f4db",
+          "stock_code": "000333",
+          "title": "董事会薪酬与考核委员会关于A股持股计划相关事宜的的核查意见",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        }
+      ],
+      "relevant_count": 34
+    },
+    {
+      "id": "C05",
+      "category": "date",
+      "query": "深桑达A 2026 年半年度报告摘要",
+      "stock_code": "000032",
+      "doc_type": "announcement",
+      "title_any": [
+        "半年度报告摘要"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000032-cd1f95e09772e4b0"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000032-cd1f95e09772e4b0",
+          "stock_code": "000032",
+          "title": "2026年半年度报告摘要",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-27"
+        }
+      ],
+      "relevant_count": 1
+    },
+    {
+      "id": "D01",
+      "category": "doctype",
+      "query": "广发证券 2025 年度独立董事述职报告",
+      "stock_code": "000776",
+      "doc_type": "announcement",
+      "title_any": [
+        "2025年度独立董事述职"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000776-429e6f2009c48181",
+        "announcement-cninfo-000776-91bf96ccec0404a6",
+        "announcement-cninfo-000776-d1eaa27c7b213bde",
+        "announcement-cninfo-000776-86e5ca4a3d4e7d93"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000776-429e6f2009c48181",
+          "stock_code": "000776",
+          "title": "广发证券2025年度独立董事述职报告(张闯)",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-91bf96ccec0404a6",
+          "stock_code": "000776",
+          "title": "广发证券2025年度独立董事述职报告(梁硕玲)",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-d1eaa27c7b213bde",
+          "stock_code": "000776",
+          "title": "广发证券2025年度独立董事述职报告(王大树)",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-86e5ca4a3d4e7d93",
+          "stock_code": "000776",
+          "title": "广发证券2025年度独立董事述职报告(黎文靖)",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        }
+      ],
+      "relevant_count": 4
+    },
+    {
+      "id": "D02",
+      "category": "doctype",
+      "query": "2025 年度股东会的法律意见书",
+      "doc_type": "announcement",
+      "title_all": [
+        "2025年度股东会",
+        "法律意见书"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000858-d348cacc9c352b99",
+        "announcement-cninfo-600036-759ec195c168466e",
+        "announcement-cninfo-000776-f85dace189da46c0",
+        "announcement-cninfo-000338-e4fa811b1f2a9292",
+        "announcement-cninfo-600519-84a678bda3dbbfda",
+        "announcement-cninfo-002594-ab95318ac2090031",
+        "announcement-cninfo-000333-ecf1ddeb13e5a778",
+        "announcement-cninfo-000700-00762731acf3be2c",
+        "announcement-cninfo-000547-3ebea32e6eb31e43",
+        "announcement-cninfo-000657-5f4b9320093fb251",
+        "announcement-cninfo-002466-adc52594d3ec6a7e",
+        "announcement-cninfo-000938-6c0474e163838836",
+        "announcement-cninfo-000733-14698c818d647213",
+        "announcement-cninfo-000969-7345b8dfa37f9481",
+        "announcement-cninfo-000811-be878dd43c12d9ee",
+        "announcement-cninfo-000725-2ac6ba4c6004a2fc",
+        "announcement-cninfo-000688-fe9f515f8039bee5",
+        "announcement-cninfo-000823-67944ef2e77ef7d9"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000858-d348cacc9c352b99",
+          "stock_code": "000858",
+          "title": "北京中伦(成都)律师事务所关于宜宾五粮液股份有限公司2025年度股东会的法律意见书",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-27"
+        },
+        {
+          "document_id": "announcement-cninfo-600036-759ec195c168466e",
+          "stock_code": "600036",
+          "title": "北京市君合(深圳)律师事务所关于招商银行股份有限公司2025年度股东会的法律意见书",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-26"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-f85dace189da46c0",
+          "stock_code": "000776",
+          "title": "北京市嘉源律师事务所关于广发证券股份有限公司2025年度股东会的法律意见书",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-26"
+        },
+        {
+          "document_id": "announcement-cninfo-000338-e4fa811b1f2a9292",
+          "stock_code": "000338",
+          "title": "北京市通商律师事务所关于潍柴动力股份有限公司2025年度股东会的法律意见书",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-23"
+        },
+        {
+          "document_id": "announcement-cninfo-600519-84a678bda3dbbfda",
+          "stock_code": "600519",
+          "title": "北京市金杜律师事务所关于贵州茅台酒股份有限公司2025年度股东会之法律意见书",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-12"
+        }
+      ],
+      "relevant_count": 18
+    },
+    {
+      "id": "D03",
+      "category": "doctype",
+      "query": "受托管理事务报告",
+      "doc_type": "announcement",
+      "title_any": [
+        "受托管理"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000776-f685ba5df3f632eb",
+        "announcement-cninfo-000776-5088fba6904c8bd7",
+        "announcement-cninfo-000776-5047b1e3f8dabd9a",
+        "announcement-cninfo-000776-aa9b69b51b7b8f88",
+        "announcement-cninfo-000776-8345ed8498f95668",
+        "announcement-cninfo-000776-273319537b6343e0",
+        "announcement-cninfo-000100-c0e92cf32e36f11d",
+        "announcement-cninfo-000725-db0928943f6d5820",
+        "announcement-cninfo-000776-06b2aa4ede7d9ad1",
+        "announcement-cninfo-000776-187619882db85bf1",
+        "announcement-cninfo-000776-73c3e1d140adcd8e",
+        "announcement-cninfo-000776-182018d650500ef0",
+        "announcement-cninfo-601012-1fe593d26a9be0ec",
+        "announcement-cninfo-000725-112b6523c7cee71a",
+        "announcement-cninfo-601012-3d57f8e5b25b1628",
+        "announcement-cninfo-000776-d691c6d349f1be0a",
+        "announcement-cninfo-000776-034a33554c437a8e",
+        "announcement-cninfo-000776-294b4d311bb9db1e",
+        "announcement-cninfo-000776-6b187c50874bcdd4",
+        "announcement-cninfo-000776-4e31ccaa33a4ac0a",
+        "announcement-cninfo-000725-4d3b7fb9c8f9f42a"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000776-f685ba5df3f632eb",
+          "stock_code": "000776",
+          "title": "国泰海通证券股份有限公司关于广发证券股份有限公司涉及修订信息披露事务管理制度事项的临时受托管理事务报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-09-08"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-5088fba6904c8bd7",
+          "stock_code": "000776",
+          "title": "招商证券股份有限公司关于广发证券股份有限公司2026年第一次临时受托管理事务报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-09-08"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-5047b1e3f8dabd9a",
+          "stock_code": "000776",
+          "title": "东方证券股份有限公司关于广发证券股份有限公司2026年第二次临时受托管理事务报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-09-08"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-aa9b69b51b7b8f88",
+          "stock_code": "000776",
+          "title": "华泰联合证券有限责任公司关于广发证券股份有限公司修订信息披露事务管理制度的临时受托管理事务报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-09-08"
+        },
+        {
+          "document_id": "announcement-cninfo-000776-8345ed8498f95668",
+          "stock_code": "000776",
+          "title": "平安证券股份有限公司关于广发证券股份有限公司修订《信息披露事务管理制度》的临时受托管理事务报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-09-08"
+        }
+      ],
+      "relevant_count": 21
+    },
+    {
+      "id": "D04",
+      "category": "doctype",
+      "query": "重大资产重组 保密措施及保密制度",
+      "doc_type": "announcement",
+      "title_any": [
+        "保密措施"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000688-f1b5fce376bf64f3",
+        "announcement-cninfo-000100-3e036aa83e556d3c"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000688-f1b5fce376bf64f3",
+          "stock_code": "000688",
+          "title": "董事会关于本次交易采取的保密措施及保密制度的说明",
+          "doc_type": "announcement",
+          "publish_time": "2026-05-23"
+        },
+        {
+          "document_id": "announcement-cninfo-000100-3e036aa83e556d3c",
+          "stock_code": "000100",
+          "title": "关于本次交易采取的保密措施及保密制度的说明",
+          "doc_type": "announcement",
+          "publish_time": "2026-03-31"
+        }
+      ],
+      "relevant_count": 2
+    },
+    {
+      "id": "D05",
+      "category": "doctype",
+      "query": "限制性股票激励计划部分股票回购注销暨通知债权人",
+      "doc_type": "announcement",
+      "title_any": [
+        "通知债权人"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000338-c37d8809289fa50a",
+        "announcement-cninfo-000657-2f92afb22e6f70d1",
+        "announcement-cninfo-002466-4fcaded1af56fc72",
+        "announcement-cninfo-000333-40da707c51f28baa",
+        "announcement-cninfo-000858-9791b6d958002a49",
+        "announcement-cninfo-000725-5d3bfe4def2a3780",
+        "announcement-cninfo-000725-63fa933edca028e8",
+        "announcement-cninfo-000338-5901b8acbc76e6b0",
+        "announcement-cninfo-000969-9e11244b460aac6a",
+        "announcement-cninfo-000338-30115dca7905caff",
+        "announcement-cninfo-600519-2327eae35ee53680",
+        "announcement-cninfo-000333-a0e40aa497a72fa8",
+        "announcement-cninfo-000811-fc0b54827b675298",
+        "announcement-cninfo-002466-fc90b88c97b1162b"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000338-c37d8809289fa50a",
+          "stock_code": "000338",
+          "title": "潍柴动力股份有限公司关于回购注销部分A股限制性股票减少注册资本通知债权人的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-28"
+        },
+        {
+          "document_id": "announcement-cninfo-000657-2f92afb22e6f70d1",
+          "stock_code": "000657",
+          "title": "关于拟回购注销部分已授予但尚未解锁的限制性股票减少注册资本暨通知债权人的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-23"
+        },
+        {
+          "document_id": "announcement-cninfo-002466-4fcaded1af56fc72",
+          "stock_code": "002466",
+          "title": "关于回购注销2024年A股限制性股票激励计划部分限制性股票暨通知债权人的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-30"
+        },
+        {
+          "document_id": "announcement-cninfo-000333-40da707c51f28baa",
+          "stock_code": "000333",
+          "title": "关于通知债权人的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-06"
+        },
+        {
+          "document_id": "announcement-cninfo-000858-9791b6d958002a49",
+          "stock_code": "000858",
+          "title": "关于回购股份事项通知债权人的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-05-19"
+        }
+      ],
+      "relevant_count": 14
+    },
+    {
+      "id": "D06",
+      "category": "doctype",
+      "query": "大宗原材料套期保值业务可行性分析报告",
+      "doc_type": "announcement",
+      "title_any": [
+        "套期保值"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000032-d0fffafe7eada7cd",
+        "announcement-cninfo-000032-a14d98d482e71fce",
+        "announcement-cninfo-000032-b95a8254de7d74c1",
+        "announcement-cninfo-300750-6401f6addd167c0c",
+        "announcement-cninfo-000063-43f63b5d49cb2a49",
+        "announcement-cninfo-000792-b90ce4cac7ac8bfb",
+        "announcement-cninfo-000630-74001ba813b5900e",
+        "announcement-cninfo-000630-b3ac5592b0cab415",
+        "announcement-cninfo-000630-1bc7af0aa4812e86",
+        "announcement-cninfo-000630-7df7011832c6fafb",
+        "announcement-cninfo-000630-ccdfc67b20c1558d",
+        "announcement-cninfo-002466-48d2b29e8ecd61df",
+        "announcement-cninfo-000333-32decfbd3e2a1c4e",
+        "announcement-cninfo-000333-9804ae73d392a589",
+        "announcement-cninfo-000100-3c8be3fc9698b2ba",
+        "announcement-cninfo-002466-a353ae4097d836dc",
+        "announcement-cninfo-002466-4239a1df0025f9f8",
+        "announcement-cninfo-002466-198dc801a67fe0a4",
+        "announcement-cninfo-002466-3fa39a0dfacf483f",
+        "announcement-cninfo-002594-6fe4c932ff90194e",
+        "announcement-cninfo-000823-5d2333e1cba2fbad",
+        "announcement-cninfo-300750-1700d007f2303c12",
+        "announcement-cninfo-300750-057bafe2817ece91",
+        "announcement-cninfo-601012-c6c9ee006921bb49",
+        "announcement-cninfo-002466-e7ab816ab178b8e8",
+        "announcement-cninfo-002466-8457becce6628d78",
+        "announcement-cninfo-300750-e9040088a3200dff",
+        "announcement-cninfo-300750-a9a0f8380da6b396",
+        "announcement-cninfo-000938-47fc673763a37374",
+        "announcement-cninfo-000938-915a2658cd0c39de",
+        "announcement-cninfo-000988-9d72645b67505463",
+        "announcement-cninfo-000988-99ad1ef7c97d52be"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000032-d0fffafe7eada7cd",
+          "stock_code": "000032",
+          "title": "关于子公司中国电子系统工程第二建设有限公司开展外汇套期保值业务的可行性分析报告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-27"
+        },
+        {
+          "document_id": "announcement-cninfo-000032-a14d98d482e71fce",
+          "stock_code": "000032",
+          "title": "中信建投关于深桑达子公司中电二公司开展外汇套期保值业务的核查意见",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-27"
+        },
+        {
+          "document_id": "announcement-cninfo-000032-b95a8254de7d74c1",
+          "stock_code": "000032",
+          "title": "关于子公司中国电子系统工程第二建设有限公司开展外汇套期保值业务的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-27"
+        },
+        {
+          "document_id": "announcement-cninfo-300750-6401f6addd167c0c",
+          "stock_code": "300750",
+          "title": "关于新增2026年度商品套期保值业务的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-26"
+        },
+        {
+          "document_id": "announcement-cninfo-000063-43f63b5d49cb2a49",
+          "stock_code": "000063",
+          "title": "关于2026年度开展套期保值型衍生品交易的可行性分析及申请交易额度的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-05-26"
+        }
+      ],
+      "relevant_count": 32
+    },
+    {
+      "id": "E01",
+      "category": "semantic",
+      "query": "哪家公司获得了银行贷款承诺用于支持股份回购",
+      "doc_type": "announcement",
+      "title_any": [
+        "贷款承诺"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000967-f076e8ff0f823cdb",
+        "announcement-cninfo-000725-9f23e58b0359f7c2",
+        "announcement-cninfo-000725-8f5347d14c29bcaf"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000967-f076e8ff0f823cdb",
+          "stock_code": "000967",
+          "title": "关于2026年回购公司股份方案暨取得回购专项贷款承诺书的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-01"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-9f23e58b0359f7c2",
+          "stock_code": "000725",
+          "title": "关于收到《贷款承诺函》暨获得回购公司股份融资支持的自愿性信息披露公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-13"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-8f5347d14c29bcaf",
+          "stock_code": "000725",
+          "title": "关于收到《贷款承诺函》暨获得回购公司股份融资支持的自愿性信息披露公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-04-04"
+        }
+      ],
+      "relevant_count": 3
+    },
+    {
+      "id": "E02",
+      "category": "semantic",
+      "query": "哪些公司披露了股份回购方案实施完毕的结果",
+      "doc_type": "announcement",
+      "title_all": [
+        "回购",
+        "实施完毕"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000100-76132d566240391b",
+        "announcement-cninfo-000725-7fa96eac2d8b5953",
+        "announcement-cninfo-000725-fc1cf3ba772cbb7d"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000100-76132d566240391b",
+          "stock_code": "000100",
+          "title": "关于2026年回购社会公众股份比例达到1%暨回购实施完毕的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-18"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-7fa96eac2d8b5953",
+          "stock_code": "000725",
+          "title": "关于回购股份方案实施完毕暨回购实施结果的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-05-30"
+        },
+        {
+          "document_id": "announcement-cninfo-000725-fc1cf3ba772cbb7d",
+          "stock_code": "000725",
+          "title": "关于回购股份方案实施完毕暨回购实施结果的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-01-06"
+        }
+      ],
+      "relevant_count": 3
+    },
+    {
+      "id": "E03",
+      "category": "semantic",
+      "query": "控股子公司项目延期",
+      "doc_type": "announcement",
+      "title_any": [
+        "项目延期"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000733-477a0f4aead27fc2",
+        "announcement-cninfo-000630-dc03b619560cc13c"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000733-477a0f4aead27fc2",
+          "stock_code": "000733",
+          "title": "广发证券股份有限公司关于中国振华(集团)科技股份有限公司部分募投项目延期的核查意见",
+          "doc_type": "announcement",
+          "publish_time": "2026-04-29"
+        },
+        {
+          "document_id": "announcement-cninfo-000630-dc03b619560cc13c",
+          "stock_code": "000630",
+          "title": "关于控股子公司项目延期的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-01-05"
+        }
+      ],
+      "relevant_count": 2
+    },
+    {
+      "id": "E04",
+      "category": "semantic",
+      "query": "公司聘任会计师事务所的相关议案",
+      "doc_type": "announcement",
+      "title_all": [
+        "会计师事务所"
+      ],
+      "title_any": [
+        "聘任",
+        "续聘"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000988-7616f021e0a8f927",
+        "announcement-cninfo-000858-b25f9c60952c72ef",
+        "announcement-cninfo-601012-0f3f3c85c9b11340",
+        "announcement-cninfo-000967-b7dad5090a480219",
+        "announcement-cninfo-000510-a86cc738d632aeb4",
+        "announcement-cninfo-000630-8498ead4dc2285e2",
+        "announcement-cninfo-600519-a069ecc2c3b245c7",
+        "announcement-cninfo-000938-bceb79a92abcd0c7",
+        "announcement-cninfo-000811-36c74470ede36d10",
+        "announcement-cninfo-000333-fb9d1b2fce1e34eb",
+        "announcement-cninfo-000776-20abfa01fbefcc9a",
+        "announcement-cninfo-000100-3d3657503d2f43ce",
+        "announcement-cninfo-002466-101e87730d38df07",
+        "announcement-cninfo-600036-e44f8006781a8f37",
+        "announcement-cninfo-002594-08d0048f09e3b97a",
+        "announcement-cninfo-000338-ce5ffd5b54600412",
+        "announcement-cninfo-601318-55b4b463f244dfe8",
+        "announcement-cninfo-000823-b0b006739f15beaf",
+        "announcement-cninfo-002138-9026b4c73a397830",
+        "announcement-cninfo-000547-f0d3e2a59d783cb1",
+        "announcement-cninfo-000021-68124fd718c460bd",
+        "announcement-cninfo-000938-364a690db0d0c5e5",
+        "announcement-cninfo-000066-e7aab8dc4a8f3867"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000988-7616f021e0a8f927",
+          "stock_code": "000988",
+          "title": "关于拟续聘会计师事务所的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-08-27"
+        },
+        {
+          "document_id": "announcement-cninfo-000858-b25f9c60952c72ef",
+          "stock_code": "000858",
+          "title": "关于拟续聘会计师事务所的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-02"
+        },
+        {
+          "document_id": "announcement-cninfo-601012-0f3f3c85c9b11340",
+          "stock_code": "601012",
+          "title": "关于续聘会计师事务所的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-04-29"
+        },
+        {
+          "document_id": "announcement-cninfo-000967-b7dad5090a480219",
+          "stock_code": "000967",
+          "title": "关于续聘会计师事务所的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-04-28"
+        },
+        {
+          "document_id": "announcement-cninfo-000510-a86cc738d632aeb4",
+          "stock_code": "000510",
+          "title": "关于拟续聘会计师事务所的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-04-25"
+        }
+      ],
+      "relevant_count": 23
+    },
+    {
+      "id": "E05",
+      "category": "semantic",
+      "query": "通信板块资金流入情况",
+      "stock_code": "000063",
+      "doc_type": "news",
+      "title_any": [
+        "资金流入"
+      ],
+      "relevant_document_ids": [
+        "news-eastmoney-000063-a84f4f5f5cf49d7e",
+        "news-eastmoney-000063-d005c9cd02fe9407",
+        "news-eastmoney-000063-fc2edfbe636b641b",
+        "news-eastmoney-000063-1bd3d0893f77ea74",
+        "news-eastmoney-000063-95ffa7148ce05a95",
+        "news-eastmoney-000063-bb1db093ffd24df6",
+        "news-eastmoney-000063-f2370d76a1faf002",
+        "news-eastmoney-000063-7ea2c61c197f29bd",
+        "news-eastmoney-000063-b760f42ba467fa47",
+        "news-eastmoney-000063-8b429b1ac2d196f7",
+        "news-eastmoney-000063-f28721c8f0bf025f"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "news-eastmoney-000063-a84f4f5f5cf49d7e",
+          "stock_code": "000063",
+          "title": "通信行业资金流入榜:长飞光纤、中天科技等净流入资金居前",
+          "doc_type": "news",
+          "publish_time": "2026-08-27 16:41:00"
+        },
+        {
+          "document_id": "news-eastmoney-000063-d005c9cd02fe9407",
+          "stock_code": "000063",
+          "title": "通信行业资金流入榜:中际旭创、永鼎股份等净流入资金居前",
+          "doc_type": "news",
+          "publish_time": "2026-08-12 16:55:00"
+        },
+        {
+          "document_id": "news-eastmoney-000063-fc2edfbe636b641b",
+          "stock_code": "000063",
+          "title": "通信行业资金流入榜:天孚通信、光库科技等净流入资金居前",
+          "doc_type": "news",
+          "publish_time": "2026-08-06 16:55:00"
+        },
+        {
+          "document_id": "news-eastmoney-000063-1bd3d0893f77ea74",
+          "stock_code": "000063",
+          "title": "通信行业资金流入榜:中兴通讯、天孚通信等净流入资金居前",
+          "doc_type": "news",
+          "publish_time": "2026-07-09 17:24:00"
+        },
+        {
+          "document_id": "news-eastmoney-000063-95ffa7148ce05a95",
+          "stock_code": "000063",
+          "title": "通信行业资金流入榜:中兴通讯、中际旭创等净流入资金居前",
+          "doc_type": "news",
+          "publish_time": "2026-07-08 16:36:00"
+        }
+      ],
+      "relevant_count": 11
+    },
+    {
+      "id": "E06",
+      "category": "semantic",
+      "query": "上市险企净利润增速出现分化",
+      "stock_code": "601318",
+      "doc_type": "news",
+      "title_any": [
+        "净利增速"
+      ],
+      "relevant_document_ids": [
+        "news-eastmoney-601318-7b7f0b0cacd658f2"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "news-eastmoney-601318-7b7f0b0cacd658f2",
+          "stock_code": "601318",
+          "title": "最高超200%、最低仅10%,上市险企净利增速为何分化",
+          "doc_type": "news",
+          "publish_time": "2026-09-01 19:59:32"
+        }
+      ],
+      "relevant_count": 1
+    },
+    {
+      "id": "E07",
+      "category": "semantic",
+      "query": "公募基金调研转向医药生物领域",
+      "doc_type": "news",
+      "title_all": [
+        "调研",
+        "医药生物"
+      ],
+      "relevant_document_ids": [
+        "news-eastmoney-000725-df515006638b9ae3",
+        "news-eastmoney-002138-c36924d3693b07ae",
+        "news-eastmoney-000333-985e032b2583d510"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "news-eastmoney-000725-df515006638b9ae3",
+          "stock_code": "000725",
+          "title": "公募调研主赛道切换至医药生物领域,易方达、永赢等旗下百亿基金经理现身",
+          "doc_type": "news",
+          "publish_time": "2026-08-12 00:15:00"
+        },
+        {
+          "document_id": "news-eastmoney-002138-c36924d3693b07ae",
+          "stock_code": "002138",
+          "title": "公募调研主赛道切换至医药生物领域,易方达、永赢等旗下百亿基金经理现身",
+          "doc_type": "news",
+          "publish_time": "2026-08-12 00:15:00"
+        },
+        {
+          "document_id": "news-eastmoney-000333-985e032b2583d510",
+          "stock_code": "000333",
+          "title": "公募调研风向微变:电子热度不减,医药生物关注度显著抬升",
+          "doc_type": "news",
+          "publish_time": "2026-06-29 21:56:00"
+        }
+      ],
+      "relevant_count": 3
+    },
+    {
+      "id": "E08",
+      "category": "semantic",
+      "query": "私募基金产品业绩大幅回撤",
+      "doc_type": "news",
+      "title_any": [
+        "回撤"
+      ],
+      "relevant_document_ids": [
+        "news-eastmoney-000792-c8c3752b25de27e0",
+        "news-eastmoney-002466-10e40bd9d9eebd43",
+        "news-eastmoney-600519-cc8feb99a88e7b7a",
+        "news-eastmoney-002138-14c99f29a1b217bc",
+        "news-eastmoney-600036-cb83ef4a6dabecf6"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "news-eastmoney-000792-c8c3752b25de27e0",
+          "stock_code": "000792",
+          "title": "有产品最大回撤超66%,“十倍基” 私募华安合鑫遭遇业绩大考",
+          "doc_type": "news",
+          "publish_time": "2026-08-18 14:14:36"
+        },
+        {
+          "document_id": "news-eastmoney-002466-10e40bd9d9eebd43",
+          "stock_code": "002466",
+          "title": "锂上游业绩大幅预增股价却持续大跌,天齐、赣锋较高点回撤超 40%",
+          "doc_type": "news",
+          "publish_time": "2026-07-15 16:31:49"
+        },
+        {
+          "document_id": "news-eastmoney-600519-cc8feb99a88e7b7a",
+          "stock_code": "600519",
+          "title": "百亿主观私募业绩分化 林园投资半年回撤超10%",
+          "doc_type": "news",
+          "publish_time": "2026-07-14 00:20:38"
+        },
+        {
+          "document_id": "news-eastmoney-002138-14c99f29a1b217bc",
+          "stock_code": "002138",
+          "title": "全球科技板块同步承压,A股热门科技股回撤超25%",
+          "doc_type": "news",
+          "publish_time": "2026-07-08 19:41:22"
+        },
+        {
+          "document_id": "news-eastmoney-600036-cb83ef4a6dabecf6",
+          "stock_code": "600036",
+          "title": "当心账户被强平!金价年内最大回撤超28%,多家银行保证金上调至120%,个人炒金业务持续收紧",
+          "doc_type": "news",
+          "publish_time": "2026-06-12 17:29:00"
+        }
+      ],
+      "relevant_count": 5
+    },
+    {
+      "id": "E09",
+      "category": "semantic",
+      "query": "股权激励相关的回购注销公告",
+      "doc_type": "announcement",
+      "title_any": [
+        "股权激励"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000333-184e7c25ee945d3c",
+        "announcement-cninfo-000333-6682acc3733059cd",
+        "announcement-cninfo-000333-9c3ca4bd815b89b4",
+        "announcement-cninfo-000333-4be399b4bbe361d9",
+        "announcement-cninfo-000333-3703b8bf401c5fa9",
+        "announcement-cninfo-300750-8aa0ee750ba06b71",
+        "announcement-cninfo-000725-aebf23ab4892fa2c",
+        "announcement-cninfo-000725-d238f01ae8a0eb38",
+        "announcement-cninfo-000725-e1748bbec0b62857",
+        "announcement-cninfo-000811-96bf238406c34300",
+        "announcement-cninfo-000333-6e12e94e6203a71b"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000333-184e7c25ee945d3c",
+          "stock_code": "000333",
+          "title": "关于自主行权模式下第九期股权激励计划第三个行权期符合行权条件开始行权的提示性公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-14"
+        },
+        {
+          "document_id": "announcement-cninfo-000333-6682acc3733059cd",
+          "stock_code": "000333",
+          "title": "关于调整股权激励计划行权价格和回购价格的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-01"
+        },
+        {
+          "document_id": "announcement-cninfo-000333-9c3ca4bd815b89b4",
+          "stock_code": "000333",
+          "title": "北京市嘉源律师事务所关于美的集团股份有限公司第八期股权激励计划注销到期未行权期权事项的法律意见书",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-22"
+        },
+        {
+          "document_id": "announcement-cninfo-000333-4be399b4bbe361d9",
+          "stock_code": "000333",
+          "title": "北京市嘉源律师事务所关于美的集团股份有限公司第九期股权激励计划相关事项调整、注销到期未行权期权及行权相关事项的法律意见书",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-22"
+        },
+        {
+          "document_id": "announcement-cninfo-000333-3703b8bf401c5fa9",
+          "stock_code": "000333",
+          "title": "董事会薪酬与考核委员会关于公司股权激励相关事项的核查意见",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-22"
+        }
+      ],
+      "relevant_count": 11
+    },
+    {
+      "id": "E10",
+      "category": "semantic",
+      "query": "股东减持股份计划公告",
+      "doc_type": "announcement",
+      "title_any": [
+        "减持"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000688-ffacb4b30cad9fe8",
+        "announcement-cninfo-000688-fd4d3e1883b7f059",
+        "announcement-cninfo-000967-19b836dcb6b835f5",
+        "announcement-cninfo-000510-8942717cd3eb4f95",
+        "announcement-cninfo-000967-5fc7b649bfb615d4",
+        "announcement-cninfo-000967-ba9780a04c115e45",
+        "announcement-cninfo-000967-ccc9a0ff0ec41de0",
+        "announcement-cninfo-000967-d825e58cec2d9a3e",
+        "announcement-cninfo-000967-e38c8310b73777bb",
+        "announcement-cninfo-000811-f101ab065f818c3a",
+        "announcement-cninfo-000700-074c7cd53884e737",
+        "announcement-cninfo-000688-95e16e07da0bd20f",
+        "announcement-cninfo-000938-17f992ebcd7cd5eb",
+        "announcement-cninfo-000967-a929873e098971b7",
+        "announcement-cninfo-000967-ef977833deb19b67",
+        "announcement-cninfo-000967-1dd335460428a08b",
+        "announcement-cninfo-000700-09a30bdfbe80822c",
+        "announcement-cninfo-000967-8b6063fabfe85009",
+        "announcement-cninfo-000510-ffd7e7ee25fdf804",
+        "announcement-cninfo-000967-5a20bf65a1e28fef",
+        "announcement-cninfo-000938-e43febcc3ab96d1a",
+        "announcement-cninfo-000510-f2ffdb6a3b7ef612",
+        "announcement-cninfo-000811-62f52ce3f3bd5f73",
+        "announcement-cninfo-000547-ce0b2f90923b5676",
+        "announcement-cninfo-000811-f617800608b2e298",
+        "announcement-cninfo-000811-51eed1237a78e8f1",
+        "announcement-cninfo-000547-e32ab230b428e6e8",
+        "announcement-cninfo-000510-79a67e084737d052",
+        "announcement-cninfo-000021-86f8e82c5d6c2af9",
+        "announcement-cninfo-000938-4d41a6b30d714d81",
+        "announcement-cninfo-000811-3d4068dec4534c51",
+        "announcement-cninfo-000547-87942b3833cbfa02",
+        "announcement-cninfo-000021-282b5444cf4aed12",
+        "announcement-cninfo-000938-f36c465a66ddc78e",
+        "announcement-cninfo-000700-67424e7c647c1557",
+        "announcement-cninfo-000811-0dfbe28565591bef",
+        "announcement-cninfo-000700-481909d2dc8712ab",
+        "announcement-cninfo-000510-d99e2b5a64b084ea",
+        "announcement-cninfo-000811-2d8d9acd5d6e784e"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000688-ffacb4b30cad9fe8",
+          "stock_code": "000688",
+          "title": "关于股东提前终止减持计划暨减持结果的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-07-23"
+        },
+        {
+          "document_id": "announcement-cninfo-000688-fd4d3e1883b7f059",
+          "stock_code": "000688",
+          "title": "关于控股股东及其一致行动人减持公司股份比例触及1%及5%整数倍的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-23"
+        },
+        {
+          "document_id": "announcement-cninfo-000967-19b836dcb6b835f5",
+          "stock_code": "000967",
+          "title": "关于控股股东宁波盈峰、实际控制人及其一致行动人自愿承诺不减持公司股份的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-02"
+        },
+        {
+          "document_id": "announcement-cninfo-000510-8942717cd3eb4f95",
+          "stock_code": "000510",
+          "title": "关于公司第一大股东、实际控制人、董事长减持计划提前终止的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-02"
+        },
+        {
+          "document_id": "announcement-cninfo-000967-5fc7b649bfb615d4",
+          "stock_code": "000967",
+          "title": "关于控股股东宁波盈峰、实际控制人及其一致行动人减持公司股份比例触及1%整数倍的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-05-27"
+        }
+      ],
+      "relevant_count": 39
+    },
+    {
+      "id": "E11",
+      "category": "semantic",
+      "query": "日常关联交易预计的公告",
+      "doc_type": "announcement",
+      "title_any": [
+        "日常关联交易预计"
+      ],
+      "relevant_document_ids": [
+        "announcement-cninfo-000630-d12d887f8feab752",
+        "announcement-cninfo-000657-807ee16dedfa5d36",
+        "announcement-cninfo-000547-a71651e3c43e474a",
+        "announcement-cninfo-000066-025d5c3be93e2b31",
+        "announcement-cninfo-000733-3115f0de22315eac",
+        "announcement-cninfo-000967-22f270bbdb93d40f",
+        "announcement-cninfo-000938-22ccaad29d2e90bb",
+        "announcement-cninfo-000630-b5cce7af49d37920",
+        "announcement-cninfo-000811-836522703ebc2fc4",
+        "announcement-cninfo-000725-dcdae4a1357f7f2b",
+        "announcement-cninfo-000333-2459408bd5b92916",
+        "announcement-cninfo-002594-d11f2cf6a6ec6eb0",
+        "announcement-cninfo-000988-1446339b072ffdd2",
+        "announcement-cninfo-000021-989fdf23b0472a86",
+        "announcement-cninfo-002138-ec28571083963a65",
+        "announcement-cninfo-000100-9af7ae27c2f4b5ad",
+        "announcement-cninfo-000938-7e6ce4201671b184",
+        "announcement-cninfo-000792-809f00392565aedf",
+        "announcement-cninfo-000988-a45b3913d85222ed",
+        "announcement-cninfo-000063-7e5f3a590d18adfc",
+        "announcement-cninfo-000630-2c324ef478da5be5",
+        "announcement-cninfo-000657-2f88b06dd996b339",
+        "announcement-cninfo-000657-8a2f3ebb121fb266"
+      ],
+      "relevant_documents": [
+        {
+          "document_id": "announcement-cninfo-000630-d12d887f8feab752",
+          "stock_code": "000630",
+          "title": "关于2026年度金融类日常关联交易预计的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-27"
+        },
+        {
+          "document_id": "announcement-cninfo-000657-807ee16dedfa5d36",
+          "stock_code": "000657",
+          "title": "关于调整2026年度与中国五矿日常关联交易预计的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-06-13"
+        },
+        {
+          "document_id": "announcement-cninfo-000547-a71651e3c43e474a",
+          "stock_code": "000547",
+          "title": "2026年度日常关联交易预计公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-04-29"
+        },
+        {
+          "document_id": "announcement-cninfo-000066-025d5c3be93e2b31",
+          "stock_code": "000066",
+          "title": "2026年度日常关联交易预计公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-04-29"
+        },
+        {
+          "document_id": "announcement-cninfo-000733-3115f0de22315eac",
+          "stock_code": "000733",
+          "title": "关于2026年度日常关联交易预计的公告",
+          "doc_type": "announcement",
+          "publish_time": "2026-04-29"
+        }
+      ],
+      "relevant_count": 23
+    }
+  ]
+}
