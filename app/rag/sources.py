@@ -40,6 +40,9 @@ CNINFO_QUERY_URL = "https://www.cninfo.com.cn/new/hisAnnouncement/query"
 CNINFO_ORGID_URL = "http://www.cninfo.com.cn/new/data/szse_stock.json"
 CNINFO_STATIC_BASE = "http://static.cninfo.com.cn/"
 CNINFO_REFERER = "https://www.cninfo.com.cn/new/disclosure"
+# The query endpoint serves at most 30 rows per page; larger pageSize values
+# make the server ignore pageNum (measured 2026-09-10).
+CNINFO_MAX_PAGE_SIZE = 30
 
 # orgId is heterogeneous (gssh0600519 / 9900005965 / GD165627) and cannot be
 # derived from the code — resolve it from cninfo's own stock list once per run.
@@ -272,24 +275,44 @@ def fetch_cninfo_announcement_list(
     begin_date: str,
     end_date: str,
     *,
-    page_size: int = 50,
-    max_pages: int = 40,
+    page_size: int = CNINFO_MAX_PAGE_SIZE,
+    max_pages: int = 60,
     max_rows: int | None = None,
 ) -> list[dict[str, Any]]:
     """Announcement metadata rows for one stock from cninfo (official).
 
     Returns rows shaped like the East Money adapter's, plus a direct PDF
     ``url`` (static.cninfo.com.cn) used to fetch the body.
+
+    Pagination note: the endpoint serves at most ``CNINFO_MAX_PAGE_SIZE`` (30)
+    rows per page and **ignores ``pageNum`` when a larger pageSize is sent**
+    (measured 2026-09-10: pageSize=50 returned page 1 again for pageNum=2, so a
+    client would silently see only the newest ~30 announcements). The size is
+    therefore clamped, pages are de-duplicated by announcementId, and
+    ``hasMore`` / ``totalRecordNum`` drive the stop condition — ``totalpages``
+    under-reports and must not be trusted.
     """
     org_id = _cninfo_org_id(code)
     if not org_id:
         raise RuntimeError(f"cninfo orgId not found for stock {code}")
 
+    page_size = max(1, min(int(page_size), CNINFO_MAX_PAGE_SIZE))
     rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
     for page_num in range(1, max_pages + 1):
         data = _cninfo_query(code, org_id, begin_date, end_date, page_num, page_size)
         items = data.get("announcements") or []
+        if not items:
+            break
+        fresh = 0
         for item in items:
+            art_code = str(item.get("announcementId") or "")
+            key = art_code or f"{item.get('announcementTitle')}|{item.get('announcementTime')}"
+            if key in seen:
+                continue
+            seen.add(key)
+            fresh += 1
             publish = _cninfo_ts_to_date(item.get("announcementTime"))
             title = clean_title(str(item.get("announcementTitle") or ""))
             adjunct = str(item.get("adjunctUrl") or "").strip()
@@ -307,20 +330,25 @@ def fetch_cninfo_announcement_list(
                         if adjunct.startswith("http")
                         else f"{CNINFO_STATIC_BASE}{adjunct}"
                     ),
-                    "art_code": str(item.get("announcementId") or ""),
+                    "art_code": art_code,
                     "adjunct_type": str(item.get("adjunctType") or "").upper(),
                 }
             )
-            if max_rows and len(rows) >= max_rows:
-                rows.sort(key=lambda r: r["publish_time"], reverse=True)
-                return rows[:max_rows]
-        if not items or not data.get("hasMore"):
+        if max_rows and len(rows) >= max_rows:
+            break
+        if fresh == 0:
+            # the server ignored pageNum and repeated this page — stop cleanly
+            break
+        if not data.get("hasMore"):
+            break
+        total = int(data.get("totalRecordNum") or 0)
+        if total and len(seen) >= total:
             break
         time.sleep(0.2)
 
     # newest first, matching the East Money adapter contract
     rows.sort(key=lambda r: r["publish_time"], reverse=True)
-    return rows
+    return rows[:max_rows] if max_rows else rows
 
 
 def _fetch_bytes(url: str) -> bytes:

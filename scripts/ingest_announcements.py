@@ -101,8 +101,8 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--delay", type=float, default=0.15,
                         help="min interval seconds between body requests")
-    parser.add_argument("--page-size", type=int, default=50,
-                        help="cninfo list page size")
+    parser.add_argument("--page-size", type=int, default=30,
+                        help="cninfo list page size (server caps at 30; larger values break paging)")
     parser.add_argument("--max-consecutive-fail-stocks", type=int, default=3,
                         help="stop early after this many consecutive fully-failed stocks")
     parser.add_argument("--refetch-existing", action="store_true",

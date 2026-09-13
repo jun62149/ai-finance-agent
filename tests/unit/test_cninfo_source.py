@@ -120,6 +120,44 @@ def test_list_requires_resolvable_orgid(monkeypatch) -> None:
         src.fetch_cninfo_announcement_list(CODE, "2026-08-01", "2026-08-31")
 
 
+def test_list_clamps_page_size_to_server_max(cninfo_env) -> None:
+    """pageSize > 30 makes cninfo ignore pageNum, so it must be clamped."""
+    sizes: list[int] = []
+
+    def fake_query(code, org, b, e, page, size):
+        sizes.append(size)
+        return {
+            "announcements": [_item("1", "A", TS_A, "finalpage/a.PDF")],
+            "hasMore": False,
+        }
+
+    cninfo_env.setattr(src, "_cninfo_query", fake_query)
+
+    src.fetch_cninfo_announcement_list(CODE, "2026-08-01", "2026-08-31", page_size=50)
+
+    assert sizes == [src.CNINFO_MAX_PAGE_SIZE]
+
+
+def test_list_stops_when_server_repeats_a_page(cninfo_env) -> None:
+    """A repeated page (pageNum ignored) must not duplicate rows or loop on."""
+    page = {
+        "announcements": [_item("1", "A", TS_A, "finalpage/a.PDF")],
+        "hasMore": True,
+    }
+    calls: list[int] = []
+
+    def fake_query(code, org, b, e, page_num, size):
+        calls.append(page_num)
+        return page
+
+    cninfo_env.setattr(src, "_cninfo_query", fake_query)
+
+    rows = src.fetch_cninfo_announcement_list(CODE, "2026-08-01", "2026-08-31")
+
+    assert [r["art_code"] for r in rows] == ["1"]  # de-duplicated
+    assert calls == [1, 2]  # stopped as soon as a page brought nothing new
+
+
 def test_body_extracts_pdf_text(monkeypatch) -> None:
     monkeypatch.setattr(src, "_fetch_bytes", lambda url: b"%PDF-fake")
     monkeypatch.setattr(src, "pdf_bytes_to_text", lambda data: "公告正文" * 20)
