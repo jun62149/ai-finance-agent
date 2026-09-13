@@ -104,10 +104,20 @@ def hybrid_search(
     timings["dense_ms"] = (time.perf_counter() - started) * 1000
 
     started = time.perf_counter()
-    lexical_hits = bm25_index.search(
-        query, top_k=bm25_top_k, stock_code=stock_code, doc_type=doc_type,
-        date_from=date_from, date_to=date_to,
-    ) if bm25_index is not None else []
+    bm25_diagnostics: dict[str, Any] = {}
+    if bm25_index is not None:
+        if hasattr(bm25_index, "search_with_diagnostics"):
+            lexical_hits, bm25_diagnostics = bm25_index.search_with_diagnostics(
+                query, top_k=bm25_top_k, stock_code=stock_code, doc_type=doc_type,
+                date_from=date_from, date_to=date_to,
+            )
+        else:  # any BM25 implementation that only exposes search()
+            lexical_hits = bm25_index.search(
+                query, top_k=bm25_top_k, stock_code=stock_code, doc_type=doc_type,
+                date_from=date_from, date_to=date_to,
+            )
+    else:
+        lexical_hits = []
     timings["bm25_ms"] = (time.perf_counter() - started) * 1000
 
     started = time.perf_counter()
@@ -149,6 +159,14 @@ def hybrid_search(
         "date_to": date_to,
         "dense_count": len(dense_hits),
         "bm25_count": len(lexical_hits),
+        # BM25 diagnostics (additive): window/truncation plus how many candidates
+        # were scanned and how many survived the metadata filters. They make the
+        # "why did this query miss?" question answerable from the trace.
+        "bm25_window": bm25_diagnostics.get("window"),
+        "bm25_truncated": bm25_diagnostics.get("truncated"),
+        "bm25_scanned": bm25_diagnostics.get("scanned"),
+        "bm25_after_filter": bm25_diagnostics.get("after_filter"),
+        "bm25_corpus": bm25_diagnostics.get("corpus"),
         "fused_count": len(fused),
         "reranked": bool(use_rerank and not rerank_error),
         "rerank_error": rerank_error,

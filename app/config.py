@@ -91,6 +91,12 @@ class Config:
 
     # Phase 3: hybrid retrieval (dense + BM25 -> RRF -> reranker)
     BM25_PATH = _env_path("BM25_PATH", DATA_DIR / "bm25")
+    # BM25 candidate window. 0 (default) = score the whole corpus and apply the
+    # metadata filters afterwards, so a filter can never hide a document that
+    # ranks outside an arbitrary window (see docs/bm25_latency_comparison.md).
+    # >0 = truncate to that many top-scoring candidates (explicit opt-in; a
+    # WARNING is logged whenever truncation actually happens).
+    BM25_WINDOW = int(os.environ.get("BM25_WINDOW", "0"))
     RRF_K = int(os.environ.get("RRF_K", "60"))
     DENSE_TOP_K = int(os.environ.get("DENSE_TOP_K", "20"))
     BM25_TOP_K = int(os.environ.get("BM25_TOP_K", "20"))

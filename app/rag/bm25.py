@@ -19,13 +19,16 @@ from __future__ import annotations
 import json
 import pickle
 import re
+import time
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from app.config import Config
+from app.log import get_logger
 
 _TOKEN_KEEP = re.compile(r"[\w\u4e00-\u9fff]")
 META_FILE = "chunks_meta.pkl"
+_LOGGER = get_logger(__name__)
 
 
 def tokenize(text: str) -> list[str]:
@@ -138,21 +141,60 @@ class BM25Index:
         date_from: str | None = None,
         date_to: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Top-k chunks for a query; `bm25_score` is attached to each result.
+        """Top-k chunks for a query; `bm25_score` is attached to each result."""
+        hits, _ = self.search_with_diagnostics(
+            query, top_k=top_k, stock_code=stock_code, doc_type=doc_type,
+            date_from=date_from, date_to=date_to,
+        )
+        return hits
 
-        Metadata filters (stock / type / date) are applied after retrieval,
-        because bm25s has no filtering support; a wider candidate window is
-        scanned when any filter is active.
+    def search_with_diagnostics(
+        self,
+        query: str,
+        *,
+        top_k: int = 20,
+        stock_code: str | None = None,
+        doc_type: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        """Top-k chunks plus the counters that explain how they were obtained.
+
+        Filtering semantics (fixed in review batch 1, Issue 1): BM25 scores the
+        **whole corpus** first and applies the metadata filters **afterwards**
+        (`BM25_WINDOW=0`, the default). The previous code scored only a
+        `max(top_k*10, 200)` window before filtering, so a filter such as
+        `stock_code + doc_type` could silently hide documents that ranked outside
+        that window (measured: 2 hits instead of 356 on the real corpus).
+
+        Setting `BM25_WINDOW>0` restores an explicit, logged truncation for very
+        large corpora. Diagnostics are returned instead of stored on the
+        instance, so concurrent requests cannot read each other's counters.
         """
+        corpus_size = len(self.chunk_ids)
+        limit = int(Config.BM25_WINDOW)
+        window = corpus_size if limit <= 0 else min(corpus_size, limit)
+        diagnostics: dict[str, Any] = {
+            "window": window,
+            "unlimited": limit <= 0,
+            "truncated": window < corpus_size,
+            "corpus": corpus_size,
+            "scanned": 0,
+            "after_filter": 0,
+            "returned": 0,
+            "elapsed_ms": 0.0,
+        }
+
         if not self.chunk_ids:
-            return []
+            return [], diagnostics
         tokens = tokenize(query)
         if not tokens:
-            return []
+            return [], diagnostics
 
-        filtered = bool(stock_code or doc_type or date_from or date_to)
-        window = min(len(self.chunk_ids), max(top_k * 10, 200) if filtered else top_k)
-        results, scores = self.retriever.retrieve([tokens], k=window, sorted=True)
+        started = time.perf_counter()
+        results, scores = self.retriever.retrieve(
+            [tokens], k=window, sorted=True, show_progress=False
+        )
         hits: list[dict[str, Any]] = []
         for position, doc_index in enumerate(results[0]):
             idx = int(doc_index)
@@ -161,6 +203,7 @@ class BM25Index:
                 # bm25s pads the ranking with zero-score docs; they are noise
                 # for retrieval (and would pollute RRF), so stop here.
                 break
+            diagnostics["scanned"] += 1
             meta = dict(self.metadatas[idx])
             if stock_code and meta.get("stock_code") != stock_code:
                 continue
@@ -171,8 +214,26 @@ class BM25Index:
                 continue
             if date_to and published and published > date_to:
                 continue
+            diagnostics["after_filter"] += 1
             meta["bm25_score"] = score
             hits.append(meta)
             if len(hits) >= top_k:
                 break
-        return hits
+
+        diagnostics["returned"] = len(hits)
+        diagnostics["elapsed_ms"] = (time.perf_counter() - started) * 1000
+        prefix = "window=ALL" if diagnostics["unlimited"] else f"window={window}"
+        if diagnostics["truncated"]:
+            prefix += " (TRUNCATED)"
+        _LOGGER.info(
+            "BM25 search: %s scanned=%d matched=%d returned=%d elapsed_ms=%.1f",
+            prefix, diagnostics["scanned"], diagnostics["after_filter"],
+            diagnostics["returned"], diagnostics["elapsed_ms"],
+        )
+        if diagnostics["truncated"]:
+            _LOGGER.warning(
+                "BM25 candidate truncation is active (BM25_WINDOW=%d < corpus=%d): "
+                "results with metadata filters can be silently incomplete",
+                limit, corpus_size,
+            )
+        return hits, diagnostics

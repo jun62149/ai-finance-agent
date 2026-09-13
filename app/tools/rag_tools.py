@@ -198,6 +198,11 @@ def search_financial_knowledge(
         "retrieval": {
             "dense": outcome["dense_count"],
             "bm25": outcome["bm25_count"],
+            # additive diagnostics: how BM25 was bounded and how much it scanned
+            "bm25_window": outcome.get("bm25_window"),
+            "bm25_truncated": outcome.get("bm25_truncated"),
+            "bm25_scanned": outcome.get("bm25_scanned"),
+            "bm25_after_filter": outcome.get("bm25_after_filter"),
             "fused": outcome["fused_count"],
             "reranked": outcome["reranked"],
             "rerank_error": outcome["rerank_error"],
