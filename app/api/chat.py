@@ -36,6 +36,12 @@ class ChatResponse(BaseModel):
     evidence_ok: bool
     validator_notes: list[str]
     model: str
+    # material the UI renders as cards: quant tool output + cited evidence
+    quant: dict[str, Any] = Field(default_factory=dict)
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
+
+
+QUANT_TOOL_NAMES = ("get_stock_profile", "get_stock_factors", "predict_stock", "rank_stocks")
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -56,4 +62,10 @@ def chat(request: ChatRequest) -> ChatResponse:
         evidence_ok=bool(state.get("evidence_ok")),
         validator_notes=list(state.get("evidence_notes") or []),
         model=LLMClient().model,
+        quant={
+            name: result
+            for name, result in (state.get("tool_results") or {}).items()
+            if name in QUANT_TOOL_NAMES
+        },
+        evidence=list(evidence),
     )

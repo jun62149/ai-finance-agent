@@ -168,3 +168,63 @@ def test_rag_search_endpoint_validates_arguments(app_client):
         "/api/rag/search", json={"query": "回购", "doc_type": "video"}
     )
     assert response.status_code == 422
+
+
+def test_frontend_is_served(app_client):
+    """P8: the same app serves the minimal UI at / with its static assets."""
+    page = app_client.get("/")
+    assert page.status_code == 200
+    assert "AI 金融智能投研 Agent" in page.text
+    assert "/static/app.js" in page.text
+
+    script = app_client.get("/static/app.js")
+    assert script.status_code == 200
+    assert "renderMarkdown" in script.text
+
+    styles = app_client.get("/static/style.css")
+    assert styles.status_code == 200
+
+
+def test_chat_response_carries_material_for_the_ui(app_client, monkeypatch):
+    """The UI needs quant results + cited evidence, not just a text answer."""
+    from app.agents import graph as agent_graph
+
+    fake_state = {
+        "final_answer": "# 报告",
+        "intent": "stock_analysis",
+        "intent_source": "rule",
+        "stock_codes": ["000725"],
+        "plan": ["predict_stock"],
+        "tool_calls": [{"name": "predict_stock", "arguments": {"code": "000725"}, "ok": True}],
+        "errors": [],
+        "evidence": [
+            {
+                "chunk_id": "c1",
+                "document_id": "d1",
+                "stock_code": "000725",
+                "doc_type": "announcement",
+                "title": "回购实施结果公告",
+                "source": "cninfo",
+                "publish_time": "2026-05-30",
+                "url": "http://x/1",
+                "content": "回购完成。",
+                "rerank_score": 0.99,
+            }
+        ],
+        "evidence_ok": True,
+        "evidence_notes": [],
+        "tool_results": {
+            "predict_stock": {"code": "000725", "score": 4.48, "pred_return_5d": 0.0055},
+            "search_financial_knowledge": {"results": []},
+        },
+    }
+    monkeypatch.setattr(agent_graph, "run_agent", lambda query, llm=None: fake_state)
+
+    response = app_client.post("/api/chat", json={"query": "分析一下 000725"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["quant"]["predict_stock"]["score"] == 4.48
+    assert body["quant"].get("search_financial_knowledge") is None  # RAG is not a card
+    assert body["evidence"][0]["url"] == "http://x/1"
+    assert body["evidence_count"] == 1

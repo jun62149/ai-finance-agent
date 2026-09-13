@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI 金融智能投研 Agent</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>AI 金融智能投研 Agent</h1>
+    <p class="sub">量化引擎（XGBoost）+ 金融知识库（BGE-M3 · BM25 · RRF · Reranker）+ 受控 Agent</p>
+  </div>
+  <div class="status" id="status">就绪</div>
+</header>
+
+<main>
+  <section class="ask">
+    <textarea id="query" rows="2" placeholder="例如：分析一下京东方A / 现在评分最高的5只股票 / 贵州茅台最近有什么公告"></textarea>
+    <div class="ask-actions">
+      <button id="submit" class="primary">提问</button>
+      <span class="hint" id="elapsed"></span>
+    </div>
+    <div class="examples">
+      <span>示例：</span>
+      <button class="chip" data-q="分析一下京东方A">分析京东方A</button>
+      <button class="chip" data-q="现在评分最高的5只股票">评分最高的5只</button>
+      <button class="chip" data-q="贵州茅台最近有什么公告">茅台最近公告</button>
+      <button class="chip" data-q="000725 最近的回购进展">回购进展</button>
+    </div>
+    <div id="error" class="error hidden"></div>
+  </section>
+
+  <section id="trace-box" class="panel hidden">
+    <h2>执行轨迹</h2>
+    <div id="trace"></div>
+  </section>
+
+  <section id="quant-box" class="panel hidden">
+    <h2>量化结果</h2>
+    <div id="quant"></div>
+  </section>
+
+  <section id="answer-box" class="panel hidden">
+    <h2>分析报告</h2>
+    <article id="answer" class="markdown"></article>
+  </section>
+
+  <section id="evidence-box" class="panel hidden">
+    <h2>证据来源 <span id="evidence-count" class="muted"></span></h2>
+    <div id="evidence"></div>
+  </section>
+</main>
+
+<footer>
+  <p><strong>模型分析结果，非投资建议。</strong>
+     量化数据基准日以报告中的 as_of 为准；新闻/公告时间跨度见证据列表，两者可能不同时点。</p>
+  <p class="muted">strong_prob 为弱信号辅助字段，不代表可靠上涨概率。</p>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
