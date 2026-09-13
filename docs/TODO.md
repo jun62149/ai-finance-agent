@@ -22,6 +22,16 @@
       使已完成的三次对照（before_fix / after_fix / window A/B）失去一致性。
       若要加，应作为**独立版本**（如 `retrieval_eval_v2.json`）并重跑全部对照。
 
+## Step 3：RRF 参数实验（已完成，结论 = 保持默认）
+
+- [x] 12 格网格（k ∈ {10,30,60,100} × 权重 {1:1,1:2,1:3}）+ 2-fold 稳定性 + rerank 短名单校验
+      —— 已完成，见 `docs/rrf_parameter_experiment.md`；原始数据 `data/eval/rrf_grid_*.json`
+- [x] 结论：**保持 `RRF_K=60` + 等权**（最优格在 unfiltered 与 rerank R@10 两项上不达标）→ **`app/` 零代码改动**
+- [ ] （可选，需更大评测集）**k=10 等权** 在两种设定下都略优（filtered +0.0139 / unfiltered +0.0046，
+      2-fold 稳定、rerank 结果与默认逐题相同），但属网格边界且增益接近阈值 ——
+      列为"待更大评测集复核"的候选，**当前不采纳**
+- [ ] README 的 RRF 参数说明：结论段可引用 `docs/rrf_parameter_experiment.md` §5 的表述
+
 ## Step 5 / Step 6（修复计划的后续步骤）
 
 - [ ] `bm25_manifest.json` + 加载时一致性校验（`IndexOutOfSync`）
