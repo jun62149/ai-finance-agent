@@ -117,4 +117,13 @@ def call_tool(name: str, **kwargs: Any) -> dict[str, Any]:
             "tool": name,
             "error": {"code": "InvalidToolArgument", "message": str(exc)},
         }
+    except Exception as exc:  # noqa: BLE001
+        # A tool must never leak an exception into the Agent loop: missing
+        # indexes, missing model files or any other unexpected failure becomes a
+        # structured error the LLM can report honestly.
+        return {
+            "ok": False,
+            "tool": name,
+            "error": {"code": type(exc).__name__, "message": str(exc)},
+        }
     return {"ok": True, "tool": name, "result": result}

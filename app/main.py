@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app import __version__
+from app.api.chat import router as chat_router
 from app.api.rag import router as rag_router
 from app.api.stocks import router
 from app.errors import QuantError
@@ -35,6 +36,7 @@ def create_app() -> FastAPI:
 
     application.include_router(router)
     application.include_router(rag_router)
+    application.include_router(chat_router)
     return application
 
 

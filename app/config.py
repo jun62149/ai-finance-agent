@@ -7,6 +7,29 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 
+def _load_dotenv(path: Path | None = None) -> None:
+    """Load KEY=VALUE pairs from `.env` into os.environ (existing vars win).
+
+    Dependency-free on purpose: secrets stay in `.env` (never in Git), and both
+    scripts and the API get them without extra packages.
+    """
+    env_path = path or (BASE_DIR / ".env")
+    if not env_path.exists():
+        return
+    for raw in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            os.environ.setdefault(key, value)
+
+
+_load_dotenv()
+
+
 def _env_path(name: str, default: Path) -> Path:
     raw = os.environ.get(name)
     return Path(raw) if raw else default
@@ -76,3 +99,12 @@ class Config:
     RERANKER_MODEL = os.environ.get("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
     RERANKER_DEVICE = os.environ.get("RERANKER_DEVICE", EMBEDDING_DEVICE)
     RERANKER_ENABLED = os.environ.get("RERANKER_ENABLED", "1").lower() not in ("0", "false", "no")
+
+    # Phase 7: Agent (LangGraph + LLM tool calling)
+    LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
+    LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.deepseek.com")
+    LLM_MODEL = os.environ.get("LLM_MODEL", "deepseek-v4-flash")
+    LLM_TEMPERATURE = float(os.environ.get("LLM_TEMPERATURE", "0.2"))
+    LLM_TIMEOUT = float(os.environ.get("LLM_TIMEOUT", "60"))
+    AGENT_MAX_ITERATIONS = int(os.environ.get("AGENT_MAX_ITERATIONS", "6"))
+    AGENT_TOOL_TIMEOUT = float(os.environ.get("AGENT_TOOL_TIMEOUT", "60"))
