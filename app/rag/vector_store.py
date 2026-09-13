@@ -11,7 +11,7 @@ doc_type / chunk_id / document_id / embedding_version.
 
 from __future__ import annotations
 
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Iterator, Sequence
 
 from app.config import Config
 
@@ -77,6 +77,21 @@ class ChunkVectorStore:
                 collection_name=self.collection,
                 vectors_config=VectorParams(size=self.dim, distance=Distance.COSINE),
             )
+        if recreate:
+            # Local mode quirk (qdrant-client 1.19, measured 2026-09-10):
+            # delete_collection + create_collection resurrects the old points, so
+            # an explicit filter-delete is required to really empty a collection.
+            self.purge()
+
+    def purge(self) -> int:
+        """Delete every point in the collection, keeping the collection itself."""
+        from qdrant_client.models import Filter, FilterSelector
+
+        before = self.count()
+        self.client.delete(
+            self.collection, points_selector=FilterSelector(filter=Filter())
+        )
+        return before - self.count()
 
     def count(self) -> int:
         return int(self.client.count(self.collection, exact=True).count)
@@ -121,6 +136,39 @@ class ChunkVectorStore:
         return total
 
     # -- reads -------------------------------------------------------------- #
+    def scroll_points(
+        self, batch_size: int = 256
+    ) -> Iterator[tuple[list[int], list[list[float]], list[dict[str, Any]]]]:
+        """Iterate over every stored point (ids, vectors, payloads).
+
+        Used to move a collection between Qdrant targets (local path mode ->
+        Docker server) without re-running the embedding model.
+        """
+        offset: Any = None
+        while True:
+            points, offset = self.client.scroll(
+                self.collection,
+                limit=batch_size,
+                offset=offset,
+                with_payload=True,
+                with_vectors=True,
+            )
+            if not points:
+                return
+            ids: list[int] = []
+            vectors: list[list[float]] = []
+            payloads: list[dict[str, Any]] = []
+            for point in points:
+                ids.append(int(point.id))
+                vector = point.vector
+                if isinstance(vector, dict):  # named vectors: take the first
+                    vector = next(iter(vector.values()))
+                vectors.append(list(map(float, vector)))
+                payloads.append(dict(point.payload or {}))
+            yield ids, vectors, payloads
+            if offset is None:
+                return
+
     def search(
         self,
         vector: Sequence[float],
