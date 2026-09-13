@@ -1,14 +1,17 @@
-# Qdrant vector store for the RAG knowledge base (Phase 2+).
+# Local stack: Qdrant (vector store) + API/Agent/Web UI.
 #
-# Phase 2 initially indexes in Qdrant *local (embedded)* mode so nothing has to
-# be running. Before wiring the API/Agent (concurrent reads) start this service
-# and migrate the existing points — embeddings are copied as-is, no re-embedding:
+#   docker compose -f docker/docker-compose.yml up -d --build      # CPU API
+#   docker compose -f docker/docker-compose.yml --profile gpu up -d --build api-gpu
+#   open http://127.0.0.1:8000/                                    # Web UI
 #
-#   docker compose -f docker/docker-compose.yml up -d qdrant
-#   .\.venv\Scripts\python.exe scripts/migrate_qdrant.py --to-url http://localhost:6333
-#   $env:QDRANT_URL = "http://localhost:6333"     # then rerun search/build
+# Data that must NOT live in the image is mounted:
+#   ../data    SQLite (documents/chunks/factors) + BM25 index + local Qdrant mode
+#   ../models  XGBoost pickles used by the Quant Engine
+#   hf-cache   HuggingFace weights (BGE-M3 ~2.2GB, reranker ~2.2GB)
 #
-# API + frontend services are added in the deployment phase (P10).
+# Embedding/reranker run on CPU by default (see docker/Dockerfile). For GPU use the
+# `gpu` profile, which requires the NVIDIA container toolkit (WSL2 + Docker Desktop
+# on Windows) and passes the GPU through to the container.
 
 services:
   qdrant:
@@ -27,3 +30,82 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: ai-finance-agent:latest
+    container_name: ai-finance-api
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      EMBEDDING_DEVICE: cpu
+      RERANKER_DEVICE: cpu
+      HF_HOME: /hf-cache
+      # First run needs the model weights (BGE-M3 ~2.2GB, reranker ~2.2GB). Two options:
+      #   a) reuse the host cache:  $env:HF_CACHE_DIR="$env:USERPROFILE\.cache\huggingface"
+      #   b) download once through a mirror: uncomment the next line
+      # HF_ENDPOINT: https://hf-mirror.com
+    ports:
+      - "8000:8000"
+    dns:
+      - 223.5.5.5     # AliDNS
+      - 119.29.29.29  # DNSPod
+      - 8.8.8.8
+    volumes:
+      - ../data:/app/data
+      - ../models:/app/models
+      # host HuggingFace cache (defaults to an empty dir next to this file)
+      - ${HF_CACHE_DIR:-./hf-cache}:/hf-cache
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # GPU variant: same app, CUDA-enabled torch. Enable with `--profile gpu`.
+  api-gpu:
+    profiles: ["gpu"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gpu
+    image: ai-finance-agent:gpu
+    container_name: ai-finance-api-gpu
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      EMBEDDING_DEVICE: cuda
+      RERANKER_DEVICE: cuda
+      HF_HOME: /hf-cache
+    ports:
+      - "8001:8000"
+    dns:
+      - 223.5.5.5
+      - 119.29.29.29
+      - 8.8.8.8
+    volumes:
+      - ../data:/app/data
+      - ../models:/app/models
+      - hf-cache:/hf-cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      qdrant:
+        condition: service_healthy
+
+volumes:
+  hf-cache:

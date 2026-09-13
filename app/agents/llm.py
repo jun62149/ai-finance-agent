@@ -12,6 +12,7 @@ instead of writing a report from nothing.
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 
 import httpx
@@ -35,12 +36,16 @@ class LLMClient:
         model: str | None = None,
         timeout: float | None = None,
         temperature: float | None = None,
+        retries: int = 2,
+        retry_backoff: float = 1.5,
     ) -> None:
         self.api_key = api_key if api_key is not None else Config.LLM_API_KEY
         self.base_url = (base_url or Config.LLM_BASE_URL).rstrip("/")
         self.model = model or Config.LLM_MODEL
         self.timeout = timeout or Config.LLM_TIMEOUT
         self.temperature = Config.LLM_TEMPERATURE if temperature is None else temperature
+        self.retries = max(0, int(retries))
+        self.retry_backoff = retry_backoff
 
     @property
     def available(self) -> bool:
@@ -71,24 +76,45 @@ class LLMClient:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
 
-        try:
-            response = httpx.post(
-                f"{self.base_url}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-                timeout=self.timeout,
-            )
-            response.raise_for_status()
-            data = response.json()
-        except httpx.HTTPStatusError as exc:
+        data: dict[str, Any] = {}
+        last_transport_error: Exception | None = None
+        for attempt in range(self.retries + 1):
+            try:
+                response = httpx.post(
+                    f"{self.base_url}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+                last_transport_error = None
+                break
+            except httpx.HTTPStatusError as exc:
+                # 4xx are our fault (bad key/params) — no point retrying; 5xx/429 are not.
+                if exc.response.status_code < 500 and exc.response.status_code != 429:
+                    raise LLMUnavailable(
+                        f"LLM HTTP {exc.response.status_code}: {exc.response.text[:200]}"
+                    ) from exc
+                last_transport_error = exc
+            except (httpx.TransportError, OSError) as exc:
+                # transient DNS/connection hiccups inside containers are common
+                last_transport_error = exc
+            except Exception as exc:  # noqa: BLE001 - malformed response
+                raise LLMUnavailable(
+                    f"LLM request failed: {type(exc).__name__}: {exc}"
+                ) from exc
+            if attempt < self.retries:
+                time.sleep(self.retry_backoff * (attempt + 1))
+
+        if last_transport_error is not None:
             raise LLMUnavailable(
-                f"LLM HTTP {exc.response.status_code}: {exc.response.text[:200]}"
-            ) from exc
-        except Exception as exc:  # noqa: BLE001 - network / JSON failures
-            raise LLMUnavailable(f"LLM request failed: {type(exc).__name__}: {exc}") from exc
+                f"LLM request failed after {self.retries + 1} attempts: "
+                f"{type(last_transport_error).__name__}: {last_transport_error}"
+            )
 
         choices = data.get("choices") or []
         if not choices:

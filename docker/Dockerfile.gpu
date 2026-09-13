@@ -1,0 +1,49 @@
+# AI 金融智能投研 Agent — GPU image (embedding + reranker on CUDA).
+#
+# Use this when BGE-M3 / bge-reranker-v2-m3 must run on the GPU. The base image
+# already ships CUDA + cuDNN + a CUDA-enabled torch, which is exactly what the
+# "do I still have to download torch/CUDA?" question comes down to: the CUDA
+# *toolkit* is only needed to compile kernels, while a CUDA-enabled torch wheel
+# brings its own runtime libraries.
+#
+# Build:
+#   docker build -f docker/Dockerfile.gpu -t ai-finance-agent:gpu .
+# Run (needs the NVIDIA container toolkit on the host):
+#   docker run --rm --gpus all -p 8000:8000 --env-file .env \
+#     -e QDRANT_URL=http://host.docker.internal:6333 \
+#     -e EMBEDDING_DEVICE=cuda -e RERANKER_DEVICE=cuda \
+#     -v "$PWD/data:/app/data" -v "$PWD/models:/app/models" \
+#     ai-finance-agent:gpu
+#
+# Verified on Windows via WSL2 + Docker Desktop:
+#   docker run --rm --gpus all <image> nvidia-smi
+
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+
+WORKDIR /app
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl libgomp1 \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./
+# torch already comes from the base image; only the remaining deps are installed.
+RUN pip install --no-cache-dir -r requirements.txt -i "${PIP_INDEX_URL}"
+
+COPY app ./app
+COPY frontend ./frontend
+COPY scripts ./scripts
+COPY tests ./tests
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8000/api/health || exit 1
+
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

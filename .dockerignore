@@ -1,0 +1,30 @@
+# Build context is the repository root (docker build -f docker/Dockerfile .)
+
+# Version control / editors
+.git/
+.github/
+.idea/
+.vscode/
+
+# Python env & caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets
+.env
+
+# Large / generated data that is mounted at runtime instead
+data/
+logs/
+models/
+reports/
+docs/archive/
+
+# Docker's own bits
+docker/qdrant_storage/
+docker-compose.yml
+Dockerfile*
+.dockerignore

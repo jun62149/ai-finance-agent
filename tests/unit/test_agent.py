@@ -408,3 +408,61 @@ def test_rank_tool_parses_top_n_from_query(query, expected) -> None:
     args = nodes._plan_arguments("rank_stocks", {"user_query": query})
 
     assert args["top_n"] == expected
+
+
+def test_llm_client_retries_transient_failures(monkeypatch) -> None:
+    """Container DNS hiccups must not turn into a failed answer."""
+    import httpx
+
+    from app.agents import llm as llm_module
+
+    attempts = {"n": 0}
+
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def raise_for_status() -> None:
+            return None
+
+        @staticmethod
+        def json():
+            return {"choices": [{"message": {"role": "assistant", "content": "ok"}}]}
+
+    def fake_post(*args, **kwargs):
+        attempts["n"] += 1
+        if attempts["n"] < 3:
+            raise httpx.ConnectError("[Errno -5] No address associated with hostname")
+        return FakeResponse()
+
+    monkeypatch.setattr(llm_module.httpx, "post", fake_post)
+    monkeypatch.setattr(llm_module.time, "sleep", lambda *_: None)
+
+    client = LLMClient(api_key="fake", retries=2)
+    message = client.chat([{"role": "user", "content": "hi"}])
+
+    assert message["content"] == "ok"
+    assert attempts["n"] == 3
+
+
+def test_llm_client_does_not_retry_client_errors(monkeypatch) -> None:
+    import httpx
+
+    from app.agents import llm as llm_module
+
+    attempts = {"n": 0}
+
+    def fake_post(*args, **kwargs):
+        attempts["n"] += 1
+        request = httpx.Request("POST", "http://x")
+        response = httpx.Response(401, request=request, text="bad key")
+        raise httpx.HTTPStatusError("401", request=request, response=response)
+
+    monkeypatch.setattr(llm_module.httpx, "post", fake_post)
+    monkeypatch.setattr(llm_module.time, "sleep", lambda *_: None)
+
+    client = LLMClient(api_key="fake", retries=2)
+    with pytest.raises(LLMUnavailable, match="401"):
+        client.chat([{"role": "user", "content": "hi"}])
+
+    assert attempts["n"] == 1  # a bad key is not worth retrying
