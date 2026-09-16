@@ -195,3 +195,68 @@ def test_hybrid_search_drops_hits_whose_text_cannot_be_hydrated(db_env, caplog) 
     assert captured["dropped_empty_content"] == 3
     assert captured["results"] == []            # ...but they are not passed on
     assert any("could not be hydrated" in r.getMessage() for r in caplog.records)
+
+
+class _Embedder:
+    dim = 4
+    version = "test"
+
+    def encode(self, texts):
+        return [[1.0, 0.0, 0.0, 0.0] for _ in texts]
+
+    def encode_one(self, text):
+        return [1.0, 0.0, 0.0, 0.0]
+
+
+class _Store:
+    """Two dense hits whose point ids match the inserted chunk rows."""
+
+    dim = 4
+
+    def search(self, vector, top_k=5, **kwargs):
+        return [
+            {"chunk_id": "c2", "document_id": "d2", "point_id": 2, "score": 0.82,
+             "stock_code": "000725", "doc_type": "announcement"},
+            {"chunk_id": "c1", "document_id": "d1", "point_id": 1, "score": 0.71,
+             "stock_code": "000725", "doc_type": "announcement"},
+        ][:top_k]
+
+
+class _Reranker:
+    def rerank(self, query, candidates, top_k=None):
+        return list(candidates)[:top_k], ""
+
+
+def test_empty_content_filter_is_a_noop_for_healthy_chunks(db_env) -> None:
+    """With hydratable chunks, results must equal the unfiltered pipeline exactly."""
+    from app.rag.hybrid import reciprocal_rank_fusion
+    from app.rag.indexing import semantic_search
+    from app.rag.retrieval import hybrid_search
+
+    _insert_db_rows(db_env)                      # chunk rows for point ids 1..3
+    index = BM25Index.build(ROWS)                # BM25 metadata carries those ids
+
+    # reference result, computed from the same primitives without the new filter
+    dense = semantic_search(_Embedder(), _Store(), "回购", top_k=20)
+    for hit in dense:
+        hit["dense_score"] = hit.pop("score", None)
+    lexical = index.search("回购", top_k=20)
+    expected = reciprocal_rank_fusion([dense, lexical], k=60, top_k=20)
+
+    outcome = hybrid_search(
+        "回购", top_k=20, use_rerank=False,
+        embedder=_Embedder(), store=_Store(), bm25_index=index, reranker=_Reranker(),
+    )
+
+    assert outcome["dropped_empty_content"] == 0                      # nothing dropped
+    assert [r["chunk_id"] for r in outcome["results"]] == [r["chunk_id"] for r in expected]
+    for got, exp in zip(outcome["results"], expected):
+        assert got["rrf_score"] == pytest.approx(exp["rrf_score"])    # fusion score unchanged
+        for key in ("dense_score", "bm25_score"):                     # per-stage scores unchanged
+            if exp.get(key) is None:
+                assert got.get(key) is None
+            else:
+                assert got[key] == pytest.approx(exp[key])
+        assert got["document_id"] == exp["document_id"]               # metadata unchanged
+        assert got["stock_code"] == exp["stock_code"]
+        assert got["content"]                                         # body present
