@@ -27,6 +27,10 @@ data/bm25/
 models/*.pkl
 models/**/*.pkl
 
+# Office temp/lock files (Word creates ~$name.docx while a document is open)
+~$*
+.~lock.*
+
 # IDE / OS
 .idea/
 .vscode/
