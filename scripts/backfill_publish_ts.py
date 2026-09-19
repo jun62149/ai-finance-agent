@@ -5,6 +5,10 @@ stores `publish_time` as a string. The recency filter (`days` in the RAG tool,
 and any date window) therefore needs `publish_ts`. Vectors are untouched — this
 only updates payloads in place, so no re-embedding is involved.
 
+The epoch is computed by `publish_ts_from` (app.timeutil, fixed UTC+8), so a value
+written from a UTC container matches one written from a UTC+8 host; this script no
+longer carries its own date parser.
+
 Run it once after migrating/creating a collection, and again only if new points
 were written by an older code path.
 
@@ -19,29 +23,12 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from datetime import datetime, time as dtime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.config import Config
 from app.rag.vector_store import ChunkVectorStore, publish_ts_from
-
-
-def _epoch(publish_time: str) -> int | None:
-    text = str(publish_time or "").strip()
-    if not text:
-        return None
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
-        try:
-            return int(datetime.strptime(text[: len(fmt) + 2].strip(), fmt).timestamp())
-        except ValueError:
-            continue
-    try:  # ISO-ish fallback
-        moment = datetime.fromisoformat(text)
-    except ValueError:
-        return None
-    return int(moment.timestamp())
 
 
 def main() -> None:

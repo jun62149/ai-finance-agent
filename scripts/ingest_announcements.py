@@ -33,7 +33,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from datetime import date, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -44,6 +44,7 @@ from app.rag.ingestion import (
     build_corpus,
     ingest_announcements_for_stocks,
 )
+from app.timeutil import market_today
 
 FLAGSHIP_CODES = [
     "600519",  # 贵州茅台
@@ -111,8 +112,10 @@ def main() -> None:
     parser.add_argument("--no-flagships", action="store_true")
     args = parser.parse_args()
 
-    end_date = date.today().isoformat()
-    begin_date = (date.today() - timedelta(days=args.days)).isoformat()
+    # A-share market calendar day (UTC+8), not the process-local date.
+    _today = market_today()
+    end_date = _today.isoformat()
+    begin_date = (_today - timedelta(days=args.days)).isoformat()
     if args.codes:
         stock_list = _resolve_names([c.strip() for c in args.codes.split(",") if c.strip()])
     else:

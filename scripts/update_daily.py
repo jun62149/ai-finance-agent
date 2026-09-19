@@ -41,7 +41,7 @@ import contextlib
 import io
 import sys
 import time
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -50,6 +50,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.db import init_db, read_sql, upsert_dataframe  # noqa: E402
 from app.quant.pool import infer_market, normalize_stock_code  # noqa: E402
+from app.timeutil import market_today  # noqa: E402
 
 BAOSTOCK_FIELDS = "date,code,open,high,low,close,volume,amount,pctChg,turn"
 DAILY_COLUMNS = [
@@ -182,7 +183,10 @@ def main() -> None:
     args = parser.parse_args()
 
     init_db()
-    end_date = args.end or date.today().isoformat()
+    # Market calendar day (UTC+8): the default end must not depend on the process
+    # timezone. Line 212's strptime/date arithmetic stays untouched -- it is pure
+    # date math on a DB value and carries no timezone.
+    end_date = args.end or market_today().isoformat()
     codes = [c.strip() for c in args.codes.split(",") if c.strip()] if args.codes else None
     stocks = target_stocks(codes, args.limit)
     if not stocks:

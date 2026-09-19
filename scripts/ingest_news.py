@@ -11,13 +11,14 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from datetime import date, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.db import read_sql
 from app.rag.ingestion import build_corpus, ingest_news_for_stocks
+from app.timeutil import market_today
 
 
 FLAGSHIP_CODES = [
@@ -49,7 +50,9 @@ def main() -> None:
     parser.add_argument("--no-flagships", action="store_true")
     args = parser.parse_args()
 
-    start_date = (date.today() - timedelta(days=args.days)).isoformat()
+    # A-share market calendar day (UTC+8), not the process-local date: the fetch
+    # window must be the same whatever timezone the host or container runs in.
+    start_date = (market_today() - timedelta(days=args.days)).isoformat()
     if args.codes:
         stock_list = _resolve_names([c.strip() for c in args.codes.split(",") if c.strip()])
     else:

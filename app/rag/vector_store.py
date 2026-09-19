@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Any, Iterable, Iterator, Sequence
 
 from app.config import Config
+from app.timeutil import to_market_epoch
 
 PAYLOAD_FIELDS = (
     "chunk_id",
@@ -32,32 +33,27 @@ PAYLOAD_FIELDS = (
 
 
 def publish_ts_from(value: Any, *, end_of_day: bool = False) -> int | None:
-    """Epoch seconds for a `publish_time` string, or None when unparsable."""
-    text = str(value or "").strip()
-    if not text:
-        return None
+    """Epoch seconds for a `publish_time` value, or None when unparsable.
+
+    The market zone (UTC+8) is applied by `app.timeutil`, so the epoch no longer
+    depends on the timezone of the process that happens to be running.
+    """
     try:
-        return _date_to_epoch(text, end_of_day=end_of_day)
-    except ValueError:
+        return to_market_epoch(value, end_of_day=end_of_day)
+    except (ValueError, TypeError):
         return None
 
 
 def _date_to_epoch(value: str, *, end_of_day: bool = False) -> int:
-    """Convert a YYYY-MM-DD (or ISO datetime) string to an epoch second.
+    """Market-zone epoch second for a YYYY-MM-DD (or ISO datetime) string.
 
-    Payload stores `publish_ts` as an integer so Qdrant range filters work;
-    string dates cannot be range-filtered.
+    The payload stores `publish_ts` as an integer because Qdrant can only
+    range-filter numbers. This is the *raising* entry point used when building a
+    dense filter: a bad boundary must fail loudly rather than silently widen or
+    narrow the window (`publish_ts_from` is the None-returning variant used when
+    deriving payloads).
     """
-    from datetime import datetime, time
-
-    text = str(value).strip()
-    if len(text) <= 10:
-        moment = datetime.strptime(text, "%Y-%m-%d")
-        if end_of_day:
-            moment = datetime.combine(moment.date(), time(23, 59, 59))
-    else:
-        moment = datetime.fromisoformat(text)
-    return int(moment.timestamp())
+    return to_market_epoch(value, end_of_day=end_of_day)
 
 
 class ChunkVectorStore:

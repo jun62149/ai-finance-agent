@@ -25,6 +25,7 @@ from typing import Any
 import httpx
 
 from app.rag.cleaner import clean_text, clean_title
+from app.timeutil import MARKET_TZ
 
 
 UA = (
@@ -264,9 +265,14 @@ def _cninfo_query(
 
 
 def _cninfo_ts_to_date(value: Any) -> str:
-    """cninfo announcementTime is a Unix millisecond timestamp."""
+    """cninfo announcementTime is a Unix millisecond timestamp.
+
+    Interpreted in the market zone (UTC+8): converting it in the process-local
+    timezone would move an early-morning announcement to the previous day in a
+    UTC container.
+    """
     if isinstance(value, (int, float)):
-        return datetime.fromtimestamp(value / 1000).strftime("%Y-%m-%d")
+        return datetime.fromtimestamp(value / 1000, tz=MARKET_TZ).strftime("%Y-%m-%d")
     return str(value or "")[:10]
 
 

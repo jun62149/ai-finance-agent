@@ -22,6 +22,7 @@ from app.rag.hybrid import reciprocal_rank_fusion
 from app.rag.indexing import semantic_search
 from app.rag.reranker import Reranker
 from app.rag.vector_store import ChunkVectorStore
+from app.timeutil import market_today
 
 _COMPONENTS: dict[str, Any] = {}
 _LOGGER = get_logger(__name__)
@@ -79,9 +80,11 @@ def hybrid_search(
     """
     timings: dict[str, float] = {}
     if days is not None and not (date_from or date_to):
-        from datetime import date, timedelta
+        from datetime import timedelta
 
-        date_from = (date.today() - timedelta(days=int(days))).isoformat()
+        # "the last N days" means market calendar days (UTC+8), so the window is
+        # identical in a UTC container and on a UTC+8 host.
+        date_from = (market_today() - timedelta(days=int(days))).isoformat()
 
     if embedder is None or store is None or bm25_index is None or reranker is None:
         components = get_components(with_reranker=use_rerank)
