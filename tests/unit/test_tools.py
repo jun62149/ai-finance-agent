@@ -141,9 +141,13 @@ def test_search_tool_passes_recency_window(hydrated_evidence, rag_components) ->
     """`days` must reach both retrievers as an explicit date window."""
     search_financial_knowledge("回购", days=30, components=rag_components)
 
-    from datetime import date, timedelta
+    from datetime import timedelta
 
-    expected_from = (date.today() - timedelta(days=30)).isoformat()
+    from app.timeutil import market_today
+
+    # The window is measured in market days (UTC+8), so this expectation is the
+    # same whichever timezone the test process runs in.
+    expected_from = (market_today() - timedelta(days=30)).isoformat()
     assert rag_components["store"].calls[0]["date_from"] == expected_from
     assert rag_components["bm25_index"].calls[0]["date_from"] == expected_from
 

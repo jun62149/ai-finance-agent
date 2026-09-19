@@ -28,11 +28,15 @@ def _item(announcement_id: str, title: str, ms: int, adjunct: str, adjunct_type:
     }
 
 
-# cninfo announcementTime is a Unix millisecond timestamp (local tz)
+# cninfo announcementTime is a Unix millisecond timestamp read in the market zone
+# (UTC+8); building it with an explicit zone keeps this fixture independent of the
+# timezone the test process happens to run in.
 def _ms(year: int, month: int, day: int) -> int:
     from datetime import datetime
 
-    return int(datetime(year, month, day).timestamp() * 1000)
+    from app.timeutil import MARKET_TZ
+
+    return int(datetime(year, month, day, tzinfo=MARKET_TZ).timestamp() * 1000)
 
 
 TS_A = _ms(2026, 8, 15)
