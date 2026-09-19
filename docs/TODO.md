@@ -37,7 +37,12 @@
 - [x] `bm25_manifest.json` + 加载时一致性校验（`IndexOutOfSync`）—— 已完成，见 `docs/bm25_index_consistency.md`
 - [x] `rag_tools._to_evidence` 必填字段补 `content` 校验；BM25 命中但回表无正文时显式丢弃并计数
       —— 已完成（同一批），字段 `dropped_empty_content` 已进入检索诊断与工具返回
-- [ ] **Step 5**：UTC+8 时区语义统一 + 重跑 `backfill_publish_ts.py`（109,554 点 / ~282s）
+- [x] **Step 5**：UTC+8 时区语义统一 —— 已完成（A 类 `8232062` / B 类 `f2f1bb1`），契约测试 35 条 `4453b3f`，
+      UTC 容器运行时验收通过；文档 `docs/timezone_semantics.md`、`reports/2026-09-13_Step5审计结果.md`
+- [x] ~~重跑 `backfill_publish_ts.py`（109,554 点 / ~282s）~~ → **已判定不需要，未执行**：
+      5-2 只读全量扫描 109,554 点全部 `ok`、`mismatch=0`、`missing=0`，存量 `publish_ts` 已等价于 UTC+8 解释，
+      回填无收益且会无谓重写 109,554 条 payload。依据 `reports/step5_publish_ts_scan_baseline.md`；
+      若将来重新怀疑入库路径，先重跑只读 `scripts/scan_publish_ts.py` 判定，**不要先回填**
 
 ## 记录规则
 
