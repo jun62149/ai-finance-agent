@@ -55,6 +55,7 @@ import hashlib
 import sqlite3
 import subprocess
 import sys
+import time
 from collections import Counter
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -66,9 +67,25 @@ from app.config import Config  # noqa: E402
 from app.rag.vector_store import ChunkVectorStore  # noqa: E402
 from app.timeutil import MARKET_TZ, to_market_epoch  # noqa: E402
 
+try:  # qdrant-client reports transport failures through this wrapper type
+    from qdrant_client.http.exceptions import (  # noqa: E402
+        ResponseHandlingException as _TransportError,
+    )
+except ImportError:  # pragma: no cover - older clients
+    _TransportError = OSError
+
+_TRANSIENT_ERRORS = (_TransportError, ConnectionError, TimeoutError)
+
 BATCH_SIZE = 512
 SAMPLE_LIMIT = 10
 HISTOGRAM_TOP = 5
+
+#: Docker Desktop on Windows restarts its engine on auto-update, which resets an
+#: in-flight scroll (`ResponseHandlingException: [WinError 10054]`). Observed
+#: 2026-09-19 mid-scan; retry the page instead of losing the whole run. Every
+#: retry is printed, so the evidence says whether the measurement was disturbed.
+SCROLL_RETRIES = 6
+SCROLL_BACKOFF_SECONDS = 10.0
 
 #: Qdrant API surface actually used by this script (for the audit trail).
 QDRANT_APIS_USED = ("count", "scroll")
@@ -195,17 +212,37 @@ def _load_db_rows() -> tuple[dict[str, dict[str, Any]], int, int, int]:
         conn.close()
 
 
-def _iter_points(store: ChunkVectorStore):
-    """Stream every point as (point_id, payload). Payload only, no vectors."""
+def _iter_points(store: ChunkVectorStore, stats: dict[str, int]):
+    """Stream every point as (point_id, payload). Payload only, no vectors.
+
+    A page is retried on a transient transport failure (the engine can restart
+    underneath us); every retry is counted in `stats` and printed, so the evidence
+    records that the measurement was disturbed rather than hiding it.
+    """
     offset: Any = None
+    attempt = 0
     while True:
-        points, offset = store.client.scroll(
-            store.collection,
-            limit=BATCH_SIZE,
-            offset=offset,
-            with_payload=True,
-            with_vectors=False,
-        )
+        try:
+            points, offset = store.client.scroll(
+                store.collection,
+                limit=BATCH_SIZE,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
+            )
+            attempt = 0
+        except _TRANSIENT_ERRORS as exc:
+            attempt += 1
+            stats["scroll_retries"] += 1
+            if attempt > SCROLL_RETRIES:
+                print(f"[scroll] giving up after {SCROLL_RETRIES} retries: "
+                      f"{type(exc).__name__}: {str(exc)[:140]}")
+                raise
+            print(f"[scroll] transient {type(exc).__name__} "
+                  f"(attempt {attempt}/{SCROLL_RETRIES}), retrying in "
+                  f"{SCROLL_BACKOFF_SECONDS:.0f}s: {str(exc)[:100]}", flush=True)
+            time.sleep(SCROLL_BACKOFF_SECONDS)
+            continue
         if not points:
             return
         for point in points:
@@ -235,9 +272,10 @@ def scan_full(label: str) -> int:
         scanned_ids: set[str] = set()
         payload_vs_db_mismatch = 0
         payload_vs_db_samples: list[tuple[str, str, str]] = []
+        stats: dict[str, int] = {"scroll_retries": 0}
 
         scanned = 0
-        for point_id, payload in _iter_points(store):
+        for point_id, payload in _iter_points(store, stats):
             scanned += 1
             chunk_id = str(payload.get("chunk_id") or f"<point:{point_id}>")
             scanned_ids.add(chunk_id)
@@ -348,6 +386,9 @@ def scan_full(label: str) -> int:
     print(f"  missing  (missing_ts + unparsable) = {missing}")
     print(f"  payload_vs_db_mismatch = {payload_vs_db_mismatch}")
     print(f"  documents_vs_chunks_mismatch = {n_doc_time_mismatch}")
+    print(f"  scroll_retries = {stats['scroll_retries']}"
+          + ("" if stats["scroll_retries"] == 0
+             else "   <-- the engine was disturbed during this run"))
     if mismatch == 0 and missing == 0:
         print("  RESULT: 0 inconsistent points -> no backfill indicated "
               "(report only; nothing was modified)")
