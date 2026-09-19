@@ -87,6 +87,12 @@ HISTOGRAM_TOP = 5
 SCROLL_RETRIES = 6
 SCROLL_BACKOFF_SECONDS = 10.0
 
+#: Progress line frequency (points). A long read must be observable: without it a
+#: stall is indistinguishable from "still working".
+PROGRESS_EVERY = 10000
+#: A scroll page slower than this is reported individually with its page number.
+SLOW_PAGE_SECONDS = 1.0
+
 #: Qdrant API surface actually used by this script (for the audit trail).
 QDRANT_APIS_USED = ("count", "scroll")
 
@@ -221,7 +227,9 @@ def _iter_points(store: ChunkVectorStore, stats: dict[str, int]):
     """
     offset: Any = None
     attempt = 0
+    page = 0
     while True:
+        page_started = time.perf_counter()
         try:
             points, offset = store.client.scroll(
                 store.collection,
@@ -245,8 +253,20 @@ def _iter_points(store: ChunkVectorStore, stats: dict[str, int]):
             continue
         if not points:
             return
+        page_seconds = time.perf_counter() - page_started
+        if page_seconds > SLOW_PAGE_SECONDS:
+            print(f"[scroll] page {page} took {page_seconds:.2f}s for "
+                  f"{len(points)} points", flush=True)
+        page += 1
         for point in points:
             yield int(point.id), dict(point.payload or {})
+        # The final page still carries points but reports offset=None, and a
+        # scroll with offset=None starts again from the beginning -- so terminate
+        # *after* yielding that page. (Only checking `not points` loops forever:
+        # found 2026-09-19 after a scan reached 1.28M points on a 109,554-point
+        # collection.)
+        if offset is None:
+            return
 
 
 # --------------------------------------------------------------------------- #
@@ -256,9 +276,10 @@ def scan_full(label: str) -> int:
     _print_header(label)
     _print_calibration()
 
+    _db_started = time.perf_counter()
     db_rows, n_chunks, n_docs, n_doc_time_mismatch = _load_db_rows()
     print(f"\n[corpus] db_chunks={n_chunks}  db_documents={n_docs}  "
-          f"db_rows_loaded={len(db_rows)}")
+          f"db_rows_loaded={len(db_rows)}  ({time.perf_counter()-_db_started:.1f}s)")
 
     store = ChunkVectorStore()
     try:
@@ -275,8 +296,20 @@ def scan_full(label: str) -> int:
         stats: dict[str, int] = {"scroll_retries": 0}
 
         scanned = 0
+        overflow = False
+        _loop_started = time.perf_counter()
         for point_id, payload in _iter_points(store, stats):
             scanned += 1
+            if scanned > points_count:
+                print(f"\n[scan] ABORT: the walk passed the {points_count} points the "
+                      f"store reports, so it is not terminating -- this run is INVALID",
+                      flush=True)
+                overflow = True
+                break
+            if scanned % PROGRESS_EVERY == 0:
+                _elapsed = time.perf_counter() - _loop_started
+                print(f"[scan] {scanned} points  {_elapsed:.1f}s  "
+                      f"{scanned / max(_elapsed, 1e-9):,.0f} points/s", flush=True)
             chunk_id = str(payload.get("chunk_id") or f"<point:{point_id}>")
             scanned_ids.add(chunk_id)
             row = db_rows.get(chunk_id)
@@ -340,6 +373,12 @@ def scan_full(label: str) -> int:
                     date_only["modulo_other"] += 1
     finally:
         store.close()
+
+    if overflow:
+        print("\n[verdict]")
+        print("  RUN INVALID: the point walk exceeded the reported point count, so the "
+              "termination logic is broken and every total below would be wrong.")
+        return 3
 
     db_only = set(db_rows) - scanned_ids
     mismatch = classes["utc_written"] + classes["other"]
