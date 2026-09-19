@@ -32,10 +32,10 @@
 | Step 2 | **Issue 1**：BM25 取消候选截断（全库打分后过滤，`BM25_WINDOW` 默认 0） | ✅ `3738d85` |
 | Step 3 | **Issue 3**：RRF 参数网格实验（12 格 + 2-fold + reranker 校验）→ **保持默认 k=60 等权** | ✅ `0f4c777`、README `1cb550f` |
 | Step 4 | **Issue 5**：BM25 manifest + `IndexOutOfSync` 一致性校验 + 空正文丢弃 | ✅ `91fcc82`、`e28dbc7`、`3dad5ef` |
-| **Step 5** | **Issue 4**：UTC+8 时间语义统一 | ⏳ **方案已提交待确认**（`reports/2026-09-13_Step5方案_时区语义.md`，`4abaeb5`），**尚未改代码** |
+| **Step 5** | **Issue 4**：UTC+8 时间语义统一 | ✅ **已完成并封板**（5-0 ~ 5-8 全部 PASS，最终 commit `8ffec47`；方案 `reports/2026-09-13_Step5方案_时区语义.md`，`4abaeb5`） |
 | 之后 | 最终 trace review（评审最后一轮） | 待定 |
 
-Step 5 方案待确认的 4 个问题：① 固定 UTC+8（不引入 `tzdata`/`ZoneInfo`）？② 审计时间戳（`created_at`/`built_at`/日志）是否一并统一？③ 若前置扫描显示 0 处不一致，是否同意**不回填** `publish_ts`、只改代码+文档？④ 是否接受"市场日历日"语义（跨 UTC 午夜时 `days` 按北京时间算）？
+Step 5 方案待确认的 4 个问题（**已全部结清**，2026-09-19 复核通过；结论见 `docs/timezone_semantics.md` 与 `reports/2026-09-13_Step5审计结果.md`，历史原文保留如下）：① 固定 UTC+8（不引入 `tzdata`/`ZoneInfo`）？② 审计时间戳（`created_at`/`built_at`/日志）是否一并统一？③ 若前置扫描显示 0 处不一致，是否同意**不回填** `publish_ts`、只改代码+文档？④ 是否接受"市场日历日"语义（跨 UTC 午夜时 `days` 按北京时间算）？
 
 ## 3. 铁律（不可违背）
 
