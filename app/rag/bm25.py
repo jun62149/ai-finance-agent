@@ -21,13 +21,13 @@ import json
 import pickle
 import re
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from app.config import Config
 from app.errors import IndexOutOfSync
 from app.log import get_logger
+from app.timeutil import now_stamp
 
 _TOKEN_KEEP = re.compile(r"[\w\u4e00-\u9fff]")
 META_FILE = "chunks_meta.pkl"
@@ -139,7 +139,9 @@ class BM25Index:
             "collection": Config.QDRANT_COLLECTION,
             "tokenizer": "jieba-cut_for_search",
             "bm25s_version": bm25s_version,
-            "built_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            # Provenance/display stamp only (Beijing wall clock). Nothing in
+            # verify() reads it back: corpus identity is chunk_id_hash.
+            "built_at": now_stamp(),
         }
 
     def save(self, path: str | Path | None = None) -> Path:

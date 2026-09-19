@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from pathlib import Path
 
 from app.config import Config
+from app.timeutil import now_stamp
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -31,8 +31,9 @@ def ensure_dirs() -> None:
 
 def write_log(action: str, level: str = "INFO") -> None:
     ensure_dirs()
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    line = f"{now} [{level}] {action}\n"
+    # Audit/display stamp only (Beijing wall clock); lines are shown as-is by
+    # read_recent_logs and never parsed back for any decision.
+    line = f"{now_stamp()} [{level}] {action}\n"
     log_path = Path(Config.LOG_DIR) / "system.log"
     with log_path.open("a", encoding="utf-8") as fh:
         fh.write(line)

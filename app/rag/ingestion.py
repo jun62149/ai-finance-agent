@@ -15,7 +15,6 @@ import hashlib
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
 from functools import partial
 from typing import Any, Callable, Iterable
 
@@ -33,6 +32,7 @@ from app.rag.sources import (
     fetch_cninfo_announcement_list,
     fetch_news_pages,
 )
+from app.timeutil import now_stamp
 
 
 ProgressFn = Callable[[str, int, int, int], None]
@@ -102,7 +102,12 @@ class _RateLimiter:
 
 
 def _now() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    """Audit/display stamp only (Beijing wall clock), for created_at rows.
+
+    Never used for filtering, ranking or attribution, and unrelated to
+    `publish_ts` or the market-date arithmetic.
+    """
+    return now_stamp()
 
 
 def _hash_text(text: str) -> str:

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime
 from pathlib import Path
 from typing import Iterator
 
@@ -16,6 +15,7 @@ import pandas as pd
 
 from app.config import Config
 from app.log import ensure_dirs
+from app.timeutil import now_stamp
 
 
 SCHEMA = """
@@ -180,7 +180,9 @@ def upsert_dataframe(df: pd.DataFrame, table: str, key_columns: list[str]) -> in
 
     init_db()
     rows = df.copy()
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Audit/display stamp only (Beijing wall clock): it is never read back for
+    # filtering, ranking or attribution, and it does not touch publish_ts.
+    now = now_stamp()
     if table == "stock_basic" and "updated_at" not in rows.columns:
         rows["updated_at"] = now
     if table in {"stock_daily", "prediction_result"} and "created_at" not in rows.columns:
