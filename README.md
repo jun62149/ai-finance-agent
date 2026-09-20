@@ -8,12 +8,12 @@
 
 | 维度 | 现状 |
 | --- | --- |
-| 量化引擎 | XGBoost 双模型（回归 + 分类），1,510,748 行因子 / 1,043 只股票；新旧引擎对拍 **5/5 一致（max_abs_diff=0）** |
-| 知识库 | 7,743 篇新闻 + 3,000+ 篇**官方公告（巨潮 cninfo，含 PDF 正文）**，共 **109,554 chunks**（32 只股票 × 近一年） |
+| 量化引擎 | XGBoost 双模型（回归 + 分类），**1,577,076 行因子 / 1,044 只股票**，行情推进至 **2026-09-18**；新旧引擎对拍 **5/5 一致（max_abs_diff=0）** |
+| 知识库 | 7,743 篇新闻 + **4,623 篇官方公告（巨潮 cninfo，含 PDF 正文）**，共 **109,554 chunks**（公告 101,811 / 新闻 7,743；32 只股票 × 近一年） |
 | 检索 | BGE-M3 dense + BM25(jieba) → RRF(k=60) → bge-reranker-v2-m3；热态 **32~376ms** |
 | Agent | LangGraph 受控工作流，5 个工具，最大 6 轮循环，工具超时 + 结构化错误 |
 | 评测 | **36 题评测集 / 373 条标注**，四组对照实验 + RRF 参数敏感性分析（Recall/Precision/MRR/NDCG/Latency） |
-| 测试 | **173 passed** |
+| 测试 | **218 passed** |
 
 ---
 
@@ -73,7 +73,12 @@
 ### 方式一：Docker（Qdrant + API + UI）
 
 ```bash
-cp .env.example .env            # 填入 LLM_API_KEY（DeepSeek）
+# 只在没有 .env 时复制：直接覆盖会清掉已填好的 LLM_API_KEY
+[ -f .env ] || cp .env.example .env
+# PowerShell: if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+# 至少填 2 项：LLM_API_KEY、LLM_MODEL=deepseek-flash
+# Docker 方式不需要设 QDRANT_URL（compose 内已注入 http://qdrant:6333）；
+# 本地方式见「已知限制」第 6 条：务必显式指定，且暂不要写进 .env
 docker compose -f docker/docker-compose.yml up -d --build
 # 打开 http://127.0.0.1:8000/
 ```
@@ -109,6 +114,9 @@ $env:QDRANT_URL = "http://localhost:6333"
 ---
 
 ## 效果示例
+
+以下为**一次真实运行的历史输出**（当时量化基准日为 2026-06-24）。现在行情已推进至 2026-09-18，
+"基准日早于新闻时间"的提示在当前数据下通常不再出现（基准日由数据决定，逻辑本身仍在）：
 
 ```text
 $ python scripts/ask.py "分析一下京东方A"
@@ -200,7 +208,7 @@ evidence=5 evidence_ok=True elapsed=33.8s
 | LLM 不做量化计算 | Agent 只有 5 个工具，无 SQL/Shell/文件工具（有测试守住）；量化工具与 API 共用同一 service |
 | 无数据不造数据 | 全部错误结构化（`NoData`/`StockNotFound`/`ModelUnavailable`/`LLMUnavailable`…）；空结果显式 `has_evidence=false`，**无 sample_data 回退** |
 | 证据可追溯 | 检索结果强制校验 `chunk_id/document_id/stock_code/doc_type/title/source/publish_time/url`，缺一即抛 `EvidenceMetadataMissing` |
-| 弱信号不得夸大 | `strong_prob`（分类 recall≈0.0005）在 API schema、工具返回值、系统 prompt 三处标注"弱信号辅助字段" |
+| 弱信号不得夸大 | `strong_prob`（分类 recall≈0.0005，见 `models/model_metrics.json`）在工具 schema、工具返回值与系统 prompt 多处标注"弱信号辅助字段" |
 | 工具边界 | 白名单 + 单工具超时 + 最大 6 轮 / 最多 12 次调用；越权调用记为 `ToolNotAllowed` |
 | 不静默回退 | `as_of` 无数据返回 `NoData`，绝不回退 latest；向量带 `embedding_version`，不同版本不混库 |
 | 密钥不入库 | 全部走 `.env`（已接线到 `os.environ`）；DB / pkl / 向量库 / 模型权重均 gitignore |
@@ -237,35 +245,44 @@ app/
 ├── quant/             因子 / 预测 / 评分 / 排名（纯逻辑，源自毕设）
 ├── services/          Stock / Prediction 服务契约（API 与工具共用）
 └── schemas/           Pydantic 输出契约
-scripts/               ingest_* · build_embeddings · build_bm25 · evaluate_retrieval
-                       ask · migrate_qdrant · bench_retrieval · purge_documents
+scripts/               抓取/建库 ingest_* · build_embeddings · build_bm25 · build_eval_set · purge_documents
+                       评测 evaluate_retrieval · grid_rrf · bench_retrieval
+                       入口 ask · search_chunks · search_hybrid
+                       运维 update_daily · rebuild_factors · predict_latest · migrate_qdrant
+                       审计/工具 scan_publish_ts · verify_consistency · legacy_baseline_runner · init_db · backfill_publish_ts
 frontend/              单页 UI（无框架、无 CDN）
 docker/                Dockerfile(CPU) · Dockerfile.gpu · docker-compose.yml
 data/eval/             冻结的评测集与实验结果
-reports/               各阶段任务报告（按日期归档）
+reports/               任务报告（按日期归档）+ 少量长期文档（Step 5 审计/基线/简历素材）
 ```
 
 ---
 
 ## 数据来源与规模
 
-- **行情/因子**：本地 SQLite（2020-01-02 ~ 2026-06-24，1,043 只股票，154 万日线，151 万因子行）
+- **行情/因子**：本地 SQLite（2020-01-02 ~ **2026-09-18**，**1,044 只股票**，**161 万日线**，**157.7 万因子行**）
 - **新闻**：东方财富（7,743 篇，近一年）
-- **公告**：**巨潮资讯网 cninfo（官方披露平台）**，含 PDF 正文解析 ——
+- **公告**：**巨潮资讯网 cninfo（官方披露平台）**，4,623 篇，含 PDF 正文解析 ——
   东财公告正文接口存在 IP 级风控，故改用官方源（并保留了东财作为可选降级源）
 - **模型**：XGBoost `xgb-b-20260625-fulla`（Rank IC 0.0737 / Top20 +1.85%）；
   Embedding `BAAI/bge-m3`；Reranker `BAAI/bge-reranker-v2-m3`
-- **LLM**：DeepSeek（OpenAI 兼容，`deepseek-v4-flash`）
+- **LLM**：DeepSeek（OpenAI 兼容，`deepseek-flash`）
 
 ## 已知限制
 
-1. **行情数据截至 2026-06-24**，而新闻/公告到 2026-09；Agent 会主动提示两者不同时点，
-   但演示"最新预测"前应增量抓取行情。
-2. **本地行情只覆盖 1,043 只**（深市主板为主）：600519 等有新闻公告但无因子行，
-   量化查询按契约返回 `NoData`（**预期行为，非 bug**）。
+1. **行情已增量更新至 2026-09-18**，与新闻/公告时间基本对齐；若长期不更新，量化基准日会落后于
+   文本时间，Agent 会主动提示两者不同时点。
+2. **因子/预测覆盖 1,044 只**（最近交易日 1,043 只入池）。有 5 只（比亚迪 002594、宁德时代 300750、
+   招商银行 600036、隆基绿能 601012、中国平安 601318）只有新闻公告、无因子行，量化查询按契约
+   返回 `NoData`（**预期行为，非 bug**）。
 3. 冷启动首次请求需加载 embedding + reranker（约 30s）；生产部署应在启动钩子预加载。
-4. 大年报正文在清洗阶段截断于 20 万字符（963 篇中 11 篇受影响）。
+4. 大年报正文在清洗阶段截断于 20 万字符：当前语料 **64 篇公告**受影响（全部为公告，新闻 0 篇）。
 5. 评测集 36 题，类别样本偏小；标签来源偏词面。
+6. **本地模式陷阱**：不显式设置 `QDRANT_URL` 时，宿主脚本与本地 API 会**静默**切到本地模式
+   `data/qdrant`，而那份旧副本同样含 109,554 点——靠点数分辨不出两个库，日期过滤可能直接 0 命中。
+   容器内由 compose 的 `environment` 覆盖（始终为 `http://qdrant:6333`）；宿主侧请在运行时显式设置，
+   **暂不要写进 `.env`**：`ChunkVectorStore._build_client` 目前会让该变量覆盖显式传入的 `path=`，
+   会误伤迁移工具的本地源、本地基准列与向量相关单元测试（详见 `.env.example` 内注释）。
 
 ## 免责声明
 

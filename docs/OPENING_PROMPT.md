@@ -69,11 +69,13 @@ Step 5 方案待确认的 4 个问题（**已全部结清**，2026-09-19 复核�
 - 语料：`documents 12,366` / `chunks 109,554`（32 只股票：公告 cninfo + 新闻 eastmoney）
 - 向量：Qdrant collection `financial_chunks`（109,554 点，1024 维）；BGE-M3 与 bge-reranker-v2-m3 **已缓存本地**（离线优先加载）
 - BM25：`data/bm25/manifest.json` → `chunk_id_hash=333554725291f85e`、`bge-m3-v1`、109,554 docs（改动语料后必须重建，否则加载即抛 `IndexOutOfSync`）
-- 量化：因子 1,510,748 行；行情**止于 2026-06-24**（可用 `scripts/update_daily.py` 增量更新：baostock 优先、akshare 兜底）
+- 量化：因子 **1,577,076 行 / 1,044 只**；行情**已推进至 2026-09-18**（增量更新用 `scripts/update_daily.py`：baostock 优先、akshare 兜底）
 - **Docker Desktop 当前已停止** → 任何需要 Qdrant 的复核，先启动：
   `docker compose -f docker/docker-compose.yml up -d qdrant`（API：`ai-finance-api`，宿主 8000）
 - 评测口径：`candidate-k = fusion-k = final-k = 20`、`BM25_WINDOW=0`；**不要引用旧表数字**（不等预算）
-- `.env` 已配置 DeepSeek（`LLM_BASE_URL=https://api.deepseek.com`、`LLM_MODEL=deepseek-v4-flash`）
+- `.env` 已配置 DeepSeek（`LLM_BASE_URL=https://api.deepseek.com`、`LLM_MODEL=deepseek-flash`）
+  与 `QDRANT_URL=http://localhost:6333`（**必须显式设置**，否则脚本会静默走 `data/qdrant` 本地旧副本）
+- 测试总量：`218 passed`（新增/改动测试后请同步 README「测试」一行）
 
 ## 7. 协作约定（我明确要求）
 
