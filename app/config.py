@@ -113,7 +113,7 @@ class Config:
     # Phase 7: Agent (LangGraph + LLM tool calling)
     LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
     LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.deepseek.com")
-    LLM_MODEL = os.environ.get("LLM_MODEL", "deepseek-v4-flash")
+    LLM_MODEL = os.environ.get("LLM_MODEL", "deepseek-flash")
     LLM_TEMPERATURE = float(os.environ.get("LLM_TEMPERATURE", "0.2"))
     LLM_TIMEOUT = float(os.environ.get("LLM_TIMEOUT", "60"))
     AGENT_MAX_ITERATIONS = int(os.environ.get("AGENT_MAX_ITERATIONS", "6"))
