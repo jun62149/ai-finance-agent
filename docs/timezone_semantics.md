@@ -243,4 +243,4 @@ docker compose -f docker/docker-compose.yml run --rm --no-deps `
 | `logs/step5_publish_ts_scan_raw.txt` | 5-2 全量扫描原始输出 |
 | `logs/step5_publish_ts_scan_after_a_class.txt` | 5-3 之后复扫（证明存量值未被改动） |
 
-5-6 的运行时验证脚本位于**仓库外**：`C:\docm\projects\step5-verify\verify_utc.py`（只读，可反复执行）。它没有进仓库，是为了避免把一次性验证器变成需要维护的生产代码；如需长期保留，应作为 `scripts/` 下的正式审计脚本重新评审后再加入。
+5-6 的运行时验证脚本位于**仓库外**的临时目录（与仓库同级的 `step5-verify/verify_utc.py`，不随仓库分发；只读，可反复执行）。它没有进仓库，是为了避免把一次性验证器变成需要维护的生产代码；如需长期保留，应作为 `scripts/` 下的正式审计脚本重新评审后再加入。
