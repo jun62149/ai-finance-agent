@@ -252,8 +252,8 @@ scripts/               抓取/建库 ingest_* · build_embeddings · build_bm25 
                        审计/工具 scan_publish_ts · verify_consistency · legacy_baseline_runner · init_db · backfill_publish_ts
 frontend/              单页 UI（无框架、无 CDN）
 docker/                Dockerfile(CPU) · Dockerfile.gpu · docker-compose.yml
+docs/                  技术说明与离线实验材料（时区语义 / BM25 一致性 / RRF 实验 / 评测对照）
 data/eval/             冻结的评测集与实验结果
-reports/               任务报告（按日期归档）+ 少量长期文档（Step 5 审计/基线/简历素材）
 ```
 
 ---

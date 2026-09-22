@@ -1,7 +1,7 @@
 # RRF 参数实验（Step 3）
 
 > 日期：2026-09-13 ｜ 代码基线：`3738d85`（Step 2 已验收）
-> 方案：`reports/2026-09-13_Step3方案_RRF参数实验.md`（决策规则在跑之前就已写死）
+> 方案：`reports/2026-09-13_Step3方案_RRF参数实验.md`（内部材料，不随本仓库分发）（决策规则在跑之前就已写死）
 > 脚本：`scripts/grid_rrf.py`（一次性实验脚本）｜ 原始数据：`data/eval/rrf_grid_filtered.json`、`rrf_grid_unfiltered.json`
 > 协议：candidate-k = fusion-k = final-k = 20，`BM25_WINDOW=0`，评测集未改动（36 题，sha256[:16]=971db9cafd93772c）
 
