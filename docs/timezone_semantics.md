@@ -2,11 +2,13 @@
 
 > 状态：Step 5 已完成并通过验收（5-1 ~ 5-6）｜基线 commit：`4453b3f`
 > 适用范围：检索日期窗口、`publish_ts` 生成、cninfo 公告日期解析、抓取窗口、审计时间戳
-> 相关证据：`reports/step5_publish_ts_scan_baseline.md（内部材料，不随本仓库分发）`（内部材料，不随本仓库分发）、`reports/2026-09-13_Step5审计结果.md（内部材料，不随本仓库分发）`（内部材料，不随本仓库分发）、`reports/2026-09-13_Step5方案_时区语义.md（内部材料，不随本仓库分发）`（内部材料，不随本仓库分发）（历史方案，未修改）
+> 相关证据：`reports/step5_publish_ts_scan_baseline.md`、`reports/2026-09-13_Step5审计结果.md`、`reports/2026-09-13_Step5方案_时区语义.md`（历史方案，未修改）
 
 本文只讲本项目的市场日语义与它带来的具体数值契约，不是 Python timezone 教程。
 
 ---
+
+> 注：文中提及的 `reports/` 材料是本机内部记录，不随本仓库分发。
 
 ## 1. 目的与适用范围
 
@@ -185,7 +187,7 @@ datetime.now().astimezone() → 2026-09-19 07:51:34+00:00  offset=0:00:00
 ## 9. 技术债务（真实存在，未处理）
 
 **9.1 存量 `publish_ts` 无需回填，但前提已被记录。**
-5-2 全量扫描 109,554 点：`ok=109554`、`mismatch=0`、`missing=0`、`payload↔DB publish_time` 不一致 0、`documents↔chunks` 不一致 0、日期型子集 modulo 交叉校验 `101811/101811` 通过。存量值全部等价于"UTC+8 解释"，因此**决定不回填**（依据 `reports/step5_publish_ts_scan_baseline.md（内部材料，不随本仓库分发）`（内部材料，不随本仓库分发））。若将来对入库路径有疑问，重跑只读的 `scripts/scan_publish_ts.py` 即可判定，不要先回填。
+5-2 全量扫描 109,554 点：`ok=109554`、`mismatch=0`、`missing=0`、`payload↔DB publish_time` 不一致 0、`documents↔chunks` 不一致 0、日期型子集 modulo 交叉校验 `101811/101811` 通过。存量值全部等价于"UTC+8 解释"，因此**决定不回填**（依据 `reports/step5_publish_ts_scan_baseline.md`）。若将来对入库路径有疑问，重跑只读的 `scripts/scan_publish_ts.py` 即可判定，不要先回填。
 
 **9.2 审计时间戳是"北京挂钟、不带偏移"。**
 `created_at` / `updated_at` / `built_at` / `system.log` 都是北京时间挂钟字符串，且**不会追溯修正**。跨环境（宿主 vs 容器）做时序比较时不可靠；它们也不参与任何业务判断。
