@@ -71,7 +71,7 @@
 ## 快速开始
 
 ### 方式一：Docker（Qdrant + API + UI）
-
+![ Docker 一键启动 ]( docs/screenshots/03-docker.png )
 ```bash
 # 只在没有 .env 时复制：直接覆盖会清掉已填好的 LLM_API_KEY
 [ -f .env ] || cp .env.example .env
@@ -128,7 +128,7 @@ evidence=5 evidence_ok=True elapsed=33.8s
 ```
 
 生成报告的真实片段（体现"可信"而不是"能聊"）：
-
+![ Agent 问答与证据来源 ]( docs/screenshots/01-chat.png )
 > **重要前置说明：量化数据的基准日（2026-06-24）早于检索到的多条新闻/公告时间（最晚 2026-08-31）。
 > 两者不是同一时点，不能直接拼接为"当前状态"。**
 >
@@ -140,7 +140,7 @@ evidence=5 evidence_ok=True elapsed=33.8s
 ---
 
 ## 检索评测（P9）
-
+![ 离线检索评测与测试 ]( docs/screenshots/02-eval.png )
 **评测集**：36 题 / 373 条标注文档，覆盖 5 类查询（股票代码 / 公司简称 / 日期约束 /
 公告类型与法律术语 / 语义事件问句）。标签由显式规格（股票 + 类型 + 日期窗口 + 标题关键词）
 从数据库解析后**冻结**，评测时不再重新推导。

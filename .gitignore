@@ -53,3 +53,4 @@ data/_phase0_*.json
 .vscode/
 .DS_Store
 Thumbs.db
+docker/hf-cache/
