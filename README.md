@@ -1,6 +1,6 @@
 # AI 金融智能投研 Agent
 
-在已答辩的本科毕设《基于 XGBoost 的 A 股选股分析系统》之上做的**求职向二次开发**：
+在《基于 XGBoost 的 A 股选股分析系统》之上做的二次开发：
 把遗留量化系统升级为「量化引擎 + 金融知识库 + 受控 Agent + Web UI + 离线评测」的完整作品。
 
 > **定位**：不是"套壳 RAG 聊天框"，而是**在遗留量化系统上做可信 AI 工程化**——
@@ -242,7 +242,7 @@ app/
 ├── rag/               sources(东财/cninfo) · cleaner · chunker · ingestion
 │                      embedding(BGE-M3) · vector_store(Qdrant) · bm25 · hybrid
 │                      reranker · retrieval · indexing · eval_metrics · migrate
-├── quant/             因子 / 预测 / 评分 / 排名（纯逻辑，源自毕设）
+├── quant/             因子 / 预测 / 评分 / 排名（纯逻辑，源自早期版本）
 ├── services/          Stock / Prediction 服务契约（API 与工具共用）
 └── schemas/           Pydantic 输出契约
 scripts/               抓取/建库 ingest_* · build_embeddings · build_bm25 · build_eval_set · purge_documents
