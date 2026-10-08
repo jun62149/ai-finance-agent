@@ -139,13 +139,18 @@ function renderTrace(data, elapsedMs) {
 
 function renderQuant(quant) {
   const html = [];
-  const prediction = quant.predict_stock;
-  const factors = quant.get_stock_factors;
-  const ranking = quant.rank_stocks;
-  const profile = quant.get_stock_profile;
+  const entries = Object.entries(quant || {});
+  const baseName = (key) => key.split(":", 1)[0];
+  const pick = (base) => entries.filter(([key]) => baseName(key) === base).map(([, value]) => value);
+  // A multi-stock comparison stores one entry per stock (`predict_stock:600519`),
+  // so each card below is rendered once per stock instead of assuming one key.
+  const predictions = pick("predict_stock");
+  const factorsList = pick("get_stock_factors");
+  const rankings = pick("rank_stocks");
+  const profiles = pick("get_stock_profile");
 
   const cards = [];
-  if (prediction) {
+  for (const prediction of predictions) {
     const cls = Number(prediction.pred_return_5d) >= 0 ? "pos" : "neg";
     cards.push(`<div class="card">
       <h3>模型预测 · ${escapeHtml(prediction.name || prediction.code || "")}</h3>
@@ -156,7 +161,7 @@ function renderQuant(quant) {
       <div class="meta">模型版本 ${escapeHtml(prediction.model_version || "")}</div>
     </div>`);
   }
-  if (factors) {
+  for (const factors of factorsList) {
     cards.push(`<div class="card">
       <h3>因子快照 · ${escapeHtml(factors.name || factors.code || "")}</h3>
       <div class="meta">基准日 ${escapeHtml(factors.as_of || "")} · 板块 ${escapeHtml(factors.board || "—")}</div>
@@ -167,17 +172,20 @@ function renderQuant(quant) {
       </table>
     </div>`);
   }
-  if (profile && !prediction && !factors) {
-    cards.push(`<div class="card">
-      <h3>股票信息</h3>
-      <div class="big">${escapeHtml(profile.name || "")}</div>
-      <div class="meta">${escapeHtml(profile.code || "")} · ${escapeHtml(profile.market || "")} ·
-        本地量化数据：${profile.has_factor_data ? "有" : "无"}</div>
-    </div>`);
+  if (!predictions.length && !factorsList.length) {
+    for (const profile of profiles) {
+      cards.push(`<div class="card">
+        <h3>股票信息</h3>
+        <div class="big">${escapeHtml(profile.name || "")}</div>
+        <div class="meta">${escapeHtml(profile.code || "")} · ${escapeHtml(profile.market || "")} ·
+          本地量化数据：${profile.has_factor_data ? "有" : "无"}</div>
+      </div>`);
+    }
   }
   if (cards.length) html.push(`<div class="cards">${cards.join("")}</div>`);
 
-  if (ranking && (ranking.items || []).length) {
+  for (const ranking of rankings) {
+    if (!(ranking.items || []).length) continue;
     const rows = ranking.items
       .map((item) => `<tr>
         <td>${item.rank}</td><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name)}</td>

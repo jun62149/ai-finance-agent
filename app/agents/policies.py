@@ -42,10 +42,52 @@ INTENT_TOOL_PLANS: dict[str, list[str]] = {
 }
 
 #: Hard limits — an Agent must terminate and must not hammer tools.
+#:
+#: `MAX_ITERATIONS` counts *loop bodies*, not LLM rounds. Every run always starts
+#: with one batch of planned tools (that batch does not increment `iterations`);
+#: afterwards the LLM may request extra tool calls at most `MAX_ITERATIONS - 1`
+#: times (`nodes.tool_execution_loop`). The default 6 therefore means:
+#:
+#:     1 batch of planned tools + up to 5 LLM extra-tool rounds
+#:
+#: and `MAX_ITERATIONS = 1` (or 0) disables LLM extra-tool rounds entirely — the
+#: planned batch still runs. Total tool *calls* are additionally capped by
+#: `MAX_TOOL_CALLS`.
 MAX_ITERATIONS = Config.AGENT_MAX_ITERATIONS
+
+#: Wall-clock budget for one tool call. On expiry the loop records a structured
+#: `ToolTimeout` and moves on; the abandoned call keeps running in its own thread
+#: (Python cannot kill a running thread — see `nodes._run_tool`).
 TOOL_TIMEOUT_SECONDS = Config.AGENT_TOOL_TIMEOUT
 MAX_TOOL_CALLS = 12
 MAX_STOCKS_PER_QUERY = 5
+
+#: Tools whose arguments are bound to one stock code. A run that covers several
+#: stocks (`stock_comparison`) calls these once per stock and keys each result by
+#: stock, so a second stock cannot overwrite the first in `tool_results`.
+CODE_SCOPED_TOOLS = frozenset(
+    [
+        quant_tools.PROFILE_TOOL_NAME,
+        quant_tools.FACTORS_TOOL_NAME,
+        quant_tools.PREDICTION_TOOL_NAME,
+    ]
+)
+
+#: `tool_results` keys of multi-stock runs carry the stock (`predict_stock:600519`),
+#: while single-stock runs keep the historical plain tool name. These two helpers
+#: are the only place where that convention is encoded.
+RESULT_KEY_SEPARATOR = ":"
+
+
+def result_key(name: str, code: str | None = None) -> str:
+    """Key a tool result is stored under (stock-suffixed when pinned to a stock)."""
+    return f"{name}{RESULT_KEY_SEPARATOR}{code}" if code else name
+
+
+def base_tool_name(key: str) -> str:
+    """Tool name behind a `tool_results` key (`predict_stock:600519` → `predict_stock`)."""
+    return str(key).split(RESULT_KEY_SEPARATOR, 1)[0]
+
 
 #: Tool names the loop may call (whitelist; no SQL/shell/file tools exist).
 ALLOWED_TOOLS = frozenset(

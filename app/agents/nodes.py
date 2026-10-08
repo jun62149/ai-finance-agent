@@ -24,8 +24,15 @@ from app.agents.llm import LLMClient
 from app.db import read_sql
 from app.tools import call_tool, get_tool, tool_schemas
 from app.tools.errors import ToolNotFound, error_payload
+from app.tools.quant_tools import FACTORS_TOOL_NAME, PREDICTION_TOOL_NAME, RANKING_TOOL_NAME
+from app.tools.rag_tools import REQUIRED_EVIDENCE_FIELDS, SEARCH_TOOL_NAME
 
 CODE_RE = re.compile(r"(?<!\d)(\d{6})(?!\d)")
+
+#: Quant tools whose presence means "there is a quantitative result to report".
+#: `get_stock_profile` is deliberately not one of them: company metadata alone
+#: cannot support a quant conclusion.
+QUANT_RESULT_TOOLS = (PREDICTION_TOOL_NAME, FACTORS_TOOL_NAME, RANKING_TOOL_NAME)
 
 
 def normalize_name(text: str) -> str:
@@ -136,42 +143,61 @@ def task_planner(state: AgentState, *, llm: LLMClient | None = None) -> AgentSta
     intent = state.get("intent", "general")
     plan = list(policies.INTENT_TOOL_PLANS.get(intent, []))
     if not state.get("stock_codes"):
-        plan = [name for name in plan if name != "get_stock_profile"]
-    # comparison without two names degrades to a single-name analysis
-    if intent == "stock_comparison" and len(state.get("stock_codes") or []) < 2:
-        plan = [name for name in plan if name != "get_stock_profile"]
+        # No subject resolved: drop the tools that need a stock code rather than
+        # calling them with empty arguments (they could only answer
+        # InvalidToolArgument). Knowledge search still runs, and the validator
+        # reports the missing quantitative material.
+        plan = [name for name in plan if name not in policies.CODE_SCOPED_TOOLS]
+    # A comparison that resolved fewer than two stocks is not special-cased here:
+    # `_tool_queue` already degrades it to the single-stock path (plain keys).
     return {"plan": plan, "iterations": 0, "tool_calls": [], "tool_results": {}, "errors": []}
 
 
 # ------------------------------------------------------------- tool runner ---
 def _run_tool(name: str, kwargs: dict[str, Any], timeout: float) -> dict[str, Any]:
-    """Execute one tool with a hard timeout; never raises."""
-    with ThreadPoolExecutor(max_workers=1) as pool:
-        future = pool.submit(call_tool, name, **kwargs)
-        try:
-            return future.result(timeout=timeout)
-        except FutureTimeout:
-            future.cancel()
-            return {
-                "ok": False,
-                "tool": name,
-                "error": {
-                    "code": "ToolTimeout",
-                    "message": f"tool {name} exceeded {timeout:.0f}s",
-                },
-            }
+    """Execute one tool with a wall-clock budget; never raises.
+
+    The call runs in its own thread so the loop can give up on it. Note that
+    Python cannot kill a running thread: on expiry the caller returns immediately
+    (the executor is shut down *without* waiting), while the abandoned call keeps
+    running until its own I/O times out. That is why every tool must keep its own
+    I/O timeout — the Agent never blocks on a hung tool.
+    """
+    pool = ThreadPoolExecutor(max_workers=1)
+    future = pool.submit(call_tool, name, **kwargs)
+    try:
+        return future.result(timeout=timeout)
+    except FutureTimeout:
+        future.cancel()  # no-op for a call that already started; see docstring
+        return {
+            "ok": False,
+            "tool": name,
+            "error": {
+                "code": "ToolTimeout",
+                "message": f"tool {name} exceeded {timeout:.0f}s",
+            },
+        }
+    finally:
+        pool.shutdown(wait=False)
 
 
-def _plan_arguments(name: str, state: AgentState) -> dict[str, Any]:
-    """Deterministic arguments for the planned tools."""
+def _plan_arguments(
+    name: str, state: AgentState, code: str | None = None
+) -> dict[str, Any]:
+    """Deterministic arguments for the planned tools.
+
+    `code` pins a call to one stock (used by the comparison expansion); when it is
+    omitted the call falls back to the first resolved stock, which is the
+    historical single-stock behaviour.
+    """
     codes = state.get("stock_codes") or []
+    target = code or (codes[0] if codes else None)
     query = state.get("user_query", "")
-    intent = state.get("intent", "")
 
-    if name in ("get_stock_profile", "get_stock_factors", "predict_stock"):
-        return {"code": codes[0]} if codes else {}
+    if name in policies.CODE_SCOPED_TOOLS:
+        return {"code": target} if target else {}
 
-    if name == "rank_stocks":
+    if name == RANKING_TOOL_NAME:
         top_n = 10
         match = re.search(r"(?:top|前)\s*(\d{1,2})", query.lower()) or re.search(
             r"(\d{1,2})\s*(?:只|个|名|位|支)", query
@@ -180,14 +206,53 @@ def _plan_arguments(name: str, state: AgentState) -> dict[str, Any]:
             top_n = max(1, min(int(match.group(1)), policies.MAX_TOOL_CALLS * 4))
         return {"top_n": top_n}
 
-    if name == "search_financial_knowledge":
+    if name == SEARCH_TOOL_NAME:
         return {
             "query": query or "最新公告",
-            "stock_code": codes[0] if codes else None,
+            "stock_code": target,
             "top_k": 5,
         }
 
     return {}
+
+
+def _tool_queue(state: AgentState) -> list[tuple[str, dict[str, Any], str]]:
+    """`(tool name, arguments, result key)` triples for the planned tools.
+
+    Single-stock runs keep the historical plain keys (`predict_stock`) so the API,
+    the UI and the LLM payload are unchanged for the common case. A comparison
+    that resolved 2+ stocks expands every code-scoped tool once per stock and keys
+    each result by stock (`predict_stock:600519`) — otherwise the second stock
+    would overwrite the first in `tool_results`.
+    """
+    plan = list(state.get("plan") or [])
+    codes = list(state.get("stock_codes") or [])
+    multi_stock = state.get("intent") == "stock_comparison" and len(codes) >= 2
+
+    if not multi_stock:
+        return [(name, _plan_arguments(name, state), name) for name in plan]
+
+    queue: list[tuple[str, dict[str, Any], str]] = []
+    for code in codes:
+        for name in plan:
+            if name in policies.CODE_SCOPED_TOOLS or name == SEARCH_TOOL_NAME:
+                arguments = _plan_arguments(name, state, code=code)
+                queue.append((name, arguments, policies.result_key(name, code)))
+    for name in plan:  # tools that are not bound to a stock still run exactly once
+        if name not in policies.CODE_SCOPED_TOOLS and name != SEARCH_TOOL_NAME:
+            queue.append((name, _plan_arguments(name, state), name))
+    return queue
+
+
+def _llm_result_key(name: str, kwargs: dict[str, Any]) -> str:
+    """Result key for an LLM-requested call: pin it to the stock it names."""
+    if name in policies.CODE_SCOPED_TOOLS:
+        code = kwargs.get("code")
+    elif name == SEARCH_TOOL_NAME:
+        code = kwargs.get("stock_code")
+    else:
+        code = None
+    return policies.result_key(name, str(code) if code else None)
 
 
 def _extra_tool_calls(state: AgentState, llm: LLMClient | None) -> list[dict[str, Any]]:
@@ -222,30 +287,54 @@ def _extra_tool_calls(state: AgentState, llm: LLMClient | None) -> list[dict[str
 
 
 def tool_execution_loop(state: AgentState, *, llm: LLMClient | None = None) -> AgentState:
-    """Run the planned tools, then let the LLM add calls — bounded by policy."""
+    """Run the planned tools, then let the LLM add calls — bounded by policy.
+
+    A multi-stock plan is expanded per stock by `_tool_queue`, and every result is
+    stored under its `result_key` (plain tool name for single-stock runs).
+    """
     tool_calls = list(state.get("tool_calls") or [])
     tool_results = dict(state.get("tool_results") or {})
     errors = list(state.get("errors") or [])
     iterations = int(state.get("iterations") or 0)
 
-    queue = [(name, _plan_arguments(name, state)) for name in state.get("plan") or []]
+    queue = _tool_queue(state)
 
     while True:
         while queue and len(tool_calls) < policies.MAX_TOOL_CALLS:
-            name, kwargs = queue.pop(0)
+            name, kwargs, key = queue.pop(0)
             if name not in policies.ALLOWED_TOOLS:
                 errors.append(
                     {"code": "ToolNotAllowed", "message": f"tool {name} is not allowed"}
                 )
                 continue
             outcome = _run_tool(name, kwargs, policies.TOOL_TIMEOUT_SECONDS)
-            tool_calls.append({"name": name, "arguments": kwargs, "ok": bool(outcome.get("ok"))})
+            tool_calls.append(
+                {
+                    "name": name,
+                    "arguments": kwargs,
+                    "result_key": key,
+                    "ok": bool(outcome.get("ok")),
+                }
+            )
             if outcome.get("ok"):
-                tool_results[name] = outcome.get("result")
+                tool_results[key] = outcome.get("result")
             else:
                 errors.append(dict(outcome.get("error") or {}))
 
         if len(tool_calls) >= policies.MAX_TOOL_CALLS:
+            if queue:
+                # A queued call must never be dropped silently: the trace is the
+                # only record of what the Agent was asked to do.
+                errors.append(
+                    {
+                        "code": "ToolCallBudgetExceeded",
+                        "message": (
+                            f"{len(queue)} queued tool call(s) discarded after "
+                            f"{policies.MAX_TOOL_CALLS} calls: "
+                            + ", ".join(name for name, _kwargs, _key in queue)
+                        ),
+                    }
+                )
             break
         if iterations >= policies.MAX_ITERATIONS - 1:
             break
@@ -269,7 +358,7 @@ def tool_execution_loop(state: AgentState, *, llm: LLMClient | None = None) -> A
                 kwargs = {}
             if not isinstance(kwargs, dict):
                 kwargs = {}
-            queue.append((name, kwargs))
+            queue.append((name, kwargs, _llm_result_key(name, kwargs)))
 
     return {
         "tool_calls": tool_calls,
@@ -281,36 +370,73 @@ def tool_execution_loop(state: AgentState, *, llm: LLMClient | None = None) -> A
 
 # -------------------------------------------------------------- validator ----
 def evidence_validator(state: AgentState, *, llm: LLMClient | None = None) -> AgentState:
-    """Check that the collected material can actually support an answer."""
+    """Check that the collected material can actually support an answer.
+
+    `evidence_ok` answers "is this material sufficient to answer?" — not merely
+    "did anything go wrong?" — because the UI renders it as a 证据校验 verdict.
+    The check is about *subjects*, never about time: a quant baseline date and a
+    `publish_time` are allowed to differ (that is a documented project semantic).
+    """
     results = state.get("tool_results") or {}
     errors = state.get("errors") or []
+    called_tools = {call.get("name") for call in state.get("tool_calls") or []}
     notes: list[str] = []
 
-    evidence = list((results.get("search_financial_knowledge") or {}).get("results") or [])
+    # A comparison run stores one entry per stock (`search_financial_knowledge:600519`),
+    # so evidence is the union over every search key.
+    evidence: list[dict[str, Any]] = []
+    for key, result in results.items():
+        if policies.base_tool_name(key) == SEARCH_TOOL_NAME and isinstance(result, dict):
+            evidence.extend(result.get("results") or [])
+
+    ok = True
+
+    # --- C2: completeness uses the tool layer's single field list -------------
     for item in evidence:
-        missing = [
-            field
-            for field in ("chunk_id", "document_id", "stock_code", "doc_type",
-                          "title", "source", "publish_time", "url")
-            if not item.get(field)
-        ]
+        missing = [field for field in REQUIRED_EVIDENCE_FIELDS if not item.get(field)]
         if missing:
+            ok = False
             notes.append(f"证据 {item.get('chunk_id')} 缺少元数据 {missing}")
 
     has_quant = any(
-        name in results for name in ("predict_stock", "get_stock_factors", "rank_stocks")
+        policies.base_tool_name(key) in QUANT_RESULT_TOOLS for key in results
     )
-    ok = True
+
     if not results:
         ok = False
         notes.append("没有任何工具返回结果：无法给出结论")
-    if evidence == [] and "search_financial_knowledge" in {
-        call["name"] for call in state.get("tool_calls") or []
-    }:
+    if SEARCH_TOOL_NAME in called_tools and not evidence:
+        # C1: the tool ran and came back empty. "Nothing failed" is not the same
+        # as "the material is sufficient", and this flag is user-visible.
+        ok = False
         notes.append("知识库未检索到相关证据：结论不应包含文本类事实")
     if state.get("intent") in ("stock_analysis", "stock_comparison", "stock_ranking") and not has_quant:
         ok = False
         notes.append("缺少量化工具结果：不得给出量化结论")
+
+    # --- C3: subject consistency (stock only — dates are deliberately ignored) -
+    requested = [str(code) for code in (state.get("stock_codes") or [])]
+    if requested:
+        requested_set = set(requested)
+        for item in evidence:
+            code = str(item.get("stock_code") or "")
+            if code and code not in requested_set:
+                ok = False
+                notes.append(
+                    f"证据 {item.get('chunk_id')} 的股票 {code} 不属于本次查询股票 {requested}"
+                )
+        for key, result in results.items():
+            if policies.base_tool_name(key) not in policies.CODE_SCOPED_TOOLS:
+                continue
+            if not isinstance(result, dict):
+                continue
+            code = str(result.get("code") or "")
+            if code and code not in requested_set:
+                ok = False
+                notes.append(
+                    f"量化结果 {key} 的股票 {code} 不属于本次查询股票 {requested}"
+                )
+
     for error in errors:
         notes.append(f"工具错误 {error.get('code')}: {error.get('message')}")
 

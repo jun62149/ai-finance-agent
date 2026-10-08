@@ -13,6 +13,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.agents import graph as agent_graph
+from app.agents import policies
 from app.agents.llm import LLMClient
 
 
@@ -63,9 +64,11 @@ def chat(request: ChatRequest) -> ChatResponse:
         validator_notes=list(state.get("evidence_notes") or []),
         model=LLMClient().model,
         quant={
-            name: result
-            for name, result in (state.get("tool_results") or {}).items()
-            if name in QUANT_TOOL_NAMES
+            # A multi-stock run keys results by stock (`predict_stock:600519`), so
+            # match on the tool name rather than the raw key.
+            key: result
+            for key, result in (state.get("tool_results") or {}).items()
+            if policies.base_tool_name(key) in QUANT_TOOL_NAMES
         },
         evidence=list(evidence),
     )

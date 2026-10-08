@@ -11,7 +11,7 @@
 | 量化引擎 | XGBoost 双模型（回归 + 分类），**1,577,076 行因子 / 1,044 只股票**，行情推进至 **2026-09-18**；新旧引擎对拍 **5/5 一致（max_abs_diff=0）** |
 | 知识库 | 7,743 篇新闻 + **4,623 篇官方公告（巨潮 cninfo，含 PDF 正文）**，共 **109,554 chunks**（公告 101,811 / 新闻 7,743；32 只股票 × 近一年） |
 | 检索 | BGE-M3 dense + BM25(jieba) → RRF(k=60) → bge-reranker-v2-m3；热态 **32~376ms** |
-| Agent | LangGraph 受控工作流，5 个工具，最大 6 轮循环，工具超时 + 结构化错误 |
+| Agent | LangGraph 受控工作流，5 个工具；单次问答 = 1 批计划工具 + 最多 5 轮 LLM 追加（`MAX_ITERATIONS=6`），最多 12 次调用、单工具超时 60s；多股票比较按股票逐只调用，结果按键区分（`predict_stock:600519`） |
 | 评测 | **36 题评测集 / 373 条标注**，四组对照实验 + RRF 参数敏感性分析（Recall/Precision/MRR/NDCG/Latency） |
 | 测试 | **218 passed** |
 
@@ -207,9 +207,9 @@ evidence=5 evidence_ok=True elapsed=33.8s
 | --- | --- |
 | LLM 不做量化计算 | Agent 只有 5 个工具，无 SQL/Shell/文件工具（有测试守住）；量化工具与 API 共用同一 service |
 | 无数据不造数据 | 全部错误结构化（`NoData`/`StockNotFound`/`ModelUnavailable`/`LLMUnavailable`…）；空结果显式 `has_evidence=false`，**无 sample_data 回退** |
-| 证据可追溯 | 检索结果强制校验 `chunk_id/document_id/stock_code/doc_type/title/source/publish_time/url`，缺一即抛 `EvidenceMetadataMissing` |
+| 证据可追溯 | 检索结果强制校验 `chunk_id/document_id/stock_code/doc_type/title/source/publish_time/url/content`，缺一即抛 `EvidenceMetadataMissing`；校验器另检查证据与量化结果的股票主体是否属于本次查询 |
 | 弱信号不得夸大 | `strong_prob`（分类 recall≈0.0005，见 `models/model_metrics.json`）在工具 schema、工具返回值与系统 prompt 多处标注"弱信号辅助字段" |
-| 工具边界 | 白名单 + 单工具超时 + 最大 6 轮 / 最多 12 次调用；越权调用记为 `ToolNotAllowed` |
+| 工具边界 | 白名单 + 单工具超时（到期立即返回 `ToolTimeout`；被放弃的调用无法终止，见「已知限制」第 7 条）+ 最大 6 轮（1 批计划工具 + 最多 5 轮 LLM 追加）/ 最多 12 次调用；越权调用记为 `ToolNotAllowed`，预算耗尽时未执行的调用记为 `ToolCallBudgetExceeded` |
 | 不静默回退 | `as_of` 无数据返回 `NoData`，绝不回退 latest；向量带 `embedding_version`，不同版本不混库 |
 | 密钥不入库 | 全部走 `.env`（已接线到 `os.environ`）；DB / pkl / 向量库 / 模型权重均 gitignore |
 
@@ -283,6 +283,11 @@ data/eval/             冻结的评测集与实验结果
    容器内由 compose 的 `environment` 覆盖（始终为 `http://qdrant:6333`）；宿主侧请在运行时显式设置，
    **暂不要写进 `.env`**：`ChunkVectorStore._build_client` 目前会让该变量覆盖显式传入的 `path=`，
    会误伤迁移工具的本地源、本地基准列与向量相关单元测试（详见 `.env.example` 内注释）。
+
+7. **工具超时是"放弃等待"而不是"杀死调用"**：单个工具超过 60s 时，Agent 会立即拿到结构化
+   `ToolTimeout` 并继续，但 Python 无法安全终止运行中的线程，被放弃的调用仍会在后台跑到自身
+   I/O 超时为止（LLM 客户端有显式超时，Qdrant 客户端使用库默认值）。因此各工具应保持自己的
+   I/O 超时；高并发下可能出现短暂的后台线程堆积。
 
 ## 免责声明
 
