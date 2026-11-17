@@ -19,48 +19,69 @@
 
 ## 架构
 
-```text
-                        ┌──────────────────────────────┐
-                        │   Web UI (单页, 无框架/CDN)   │
-                        │  报告 · 量化卡片 · 证据来源    │
-                        └───────────────┬──────────────┘
-                                        │ POST /api/chat, /api/rag/search
-                        ┌───────────────▼──────────────┐
-                        │        FastAPI Gateway        │
-                        │   结构化错误 {code, message}   │
-                        └───────────────┬──────────────┘
-                                        │
-                        ┌───────────────▼──────────────┐
-                        │   LangGraph 受控 Agent        │
-                        │  query_analyzer               │
-                        │  → stock_resolver             │
-                        │  → task_planner (确定性计划)   │
-                        │  → tool_execution_loop (≤6 轮) │
-                        │  → evidence_validator         │
-                        │  → report_generator (LLM)     │
-                        └──────┬─────────────────┬──────┘
-                               │                 │
-                 ┌─────────────▼──────┐   ┌──────▼─────────────────────┐
-                 │   Quant Tools      │   │   RAG Tool                 │
-                 │ get_stock_profile  │   │ search_financial_knowledge │
-                 │ get_stock_factors  │   └──────┬─────────────────────┘
-                 │ predict_stock      │          │
-                 │ rank_stocks        │   ┌──────▼─────────────────────┐
-                 └─────────┬──────────┘   │ Hybrid Retrieval           │
-                           │              │ dense(BGE-M3) ┐            │
-                 ┌─────────▼──────────┐   │ BM25(jieba)   ├→ RRF →Rerank│
-                 │ Quant Engine       │   └──────┬────────┘            │
-                 │ 因子/预测/评分/排名 │          │                     │
-                 └─────────┬──────────┘   ┌──────▼─────────────────────┐
-                           │              │ Qdrant (109,554 points)    │
-                 ┌─────────▼──────────┐   │ payload: stock/doc_type/ts │
-                 │ SQLite             │   └────────────────────────────┘
-                 │ 行情/因子/文档/chunks│
-                 └────────────────────┘
-                           │
-                 ┌─────────▼──────────┐
-                 │ DeepSeek (LLM)     │  只做理解/路由/组织证据/解释
-                 └────────────────────┘
+```mermaid
+flowchart TB
+    UI["Web UI · 单页，无框架 / CDN<br/>分析报告 · 量化卡片 · 证据来源"]
+    API["FastAPI Gateway<br/>结构化错误：code / message"]
+    UI -->|POST /api/chat| API
+
+    subgraph Agent["LangGraph · 受控 Agent"]
+        direction TB
+        Analyze["query_analyzer · 意图识别"]
+        Resolve["stock_resolver · 股票解析"]
+        Plan["task_planner · 确定性计划"]
+        Execute["tool_execution_loop<br/>1 批计划工具 + 最多 5 轮模型追加<br/>最多 12 次调用 · 单工具超时 60s"]
+        Validate["evidence_validator<br/>证据完整性 · 股票主体一致性"]
+        Report["report_generator · 生成报告"]
+        Analyze --> Resolve --> Plan --> Execute --> Validate --> Report
+    end
+    API --> Analyze
+
+    QuantTools["Quant Tools<br/>get_stock_profile · get_stock_factors<br/>predict_stock · rank_stocks"]
+    Quant["Quant Engine · 共用服务层<br/>因子 · XGBoost 预测 · 评分 · 排名"]
+    RagTool["RAG Tool<br/>search_financial_knowledge"]
+    Execute --> QuantTools --> Quant
+    Execute --> RagTool
+    API -->|POST /api/rag/search| RagTool
+    API -->|GET /api/stocks/*| Quant
+
+    subgraph Retrieval["Hybrid Retrieval · 混合检索"]
+        direction TB
+        Dense["BGE-M3 · 向量召回"]
+        BM25["BM25 · jieba 分词"]
+        RRF["RRF · 按 chunk_id 融合"]
+        Rerank["Reranker · 证据重排<br/>失败时保留融合顺序"]
+        Dense --> RRF
+        BM25 --> RRF
+        RRF --> Rerank
+    end
+    RagTool --> Dense
+    RagTool --> BM25
+
+    DB[("SQLite<br/>行情 · 因子 · 文档 · chunks 正文")]
+    Qdrant[("Qdrant · 向量与元数据<br/>stock_code · doc_type · publish_ts")]
+    Index[("BM25 持久化索引<br/>加载时校验语料指纹")]
+    Quant -->|读取行情与因子| DB
+    Dense -->|向量查询与元数据过滤| Qdrant
+    BM25 -->|词面检索与元数据过滤| Index
+    Dense -.->|按 point_id 回查正文| DB
+    RRF -.->|补齐 BM25 命中正文| DB
+
+    LLM["DeepSeek · LLM<br/>意图兜底 · 补充工具调用 · 组织证据与解释"]
+    Analyze -.-> LLM
+    Execute -.-> LLM
+    Report -.-> LLM
+
+    classDef entry fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+    classDef workflow fill:#f0fdfa,stroke:#0d9488,color:#134e4a
+    classDef tool fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+    classDef storage fill:#f8fafc,stroke:#64748b,color:#334155
+    classDef model fill:#faf5ff,stroke:#9333ea,color:#581c87
+    class UI,API entry
+    class Analyze,Resolve,Plan,Execute,Validate,Report workflow
+    class QuantTools,Quant,RagTool,Dense,BM25,RRF,Rerank tool
+    class DB,Qdrant,Index storage
+    class LLM model
 ```
 
 **职责边界（铁律）**：LLM **不做量化计算**，只通过工具拿结构化结果；
