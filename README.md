@@ -1,14 +1,14 @@
 # AI 金融智能投研 Agent
 
-在《基于 XGBoost 的 A 股选股分析系统》之上做的二次开发：
-把遗留量化系统升级为「量化引擎 + 金融知识库 + 受控 Agent + Web UI + 离线评测」的完整作品。
+面向 A 股投研场景的 AI Agent 应用，集成量化引擎、金融知识库、受控 Agent、Web UI 与离线评测。
+支持通过自然语言进行个股分析、多股比较、新闻公告查询与评分选股，输出带来源证据的分析报告。
 
-> **定位**：不是"套壳 RAG 聊天框"，而是**在遗留量化系统上做可信 AI 工程化**——
-> 量化结果与带来源的文本证据统一编排，且一切可量化评测。
+> **工程重点**：统一编排量化工具与文本检索，保留执行轨迹和证据来源，
+> 通过结构化错误、证据校验与离线评测检查系统行为。
 
 | 维度 | 现状 |
 | --- | --- |
-| 量化引擎 | XGBoost 双模型（回归 + 分类），**1,577,076 行因子 / 1,044 只股票**，行情推进至 **2026-09-18**；新旧引擎对拍 **5/5 一致（max_abs_diff=0）** |
+| 量化引擎 | XGBoost 双模型（回归 + 分类），**1,577,076 行因子 / 1,044 只股票**，行情推进至 **2026-09-18**；量化服务与基准结果一致性校验 **5/5 通过（max_abs_diff=0）** |
 | 知识库 | 7,743 篇新闻 + **4,623 篇官方公告（巨潮 cninfo，含 PDF 正文）**，共 **109,554 chunks**（公告 101,811 / 新闻 7,743；32 只股票 × 近一年） |
 | 检索 | BGE-M3 dense + BM25(jieba) → RRF(k=60) → bge-reranker-v2-m3；热态 **32~376ms** |
 | Agent | LangGraph 受控工作流，5 个工具；单次问答 = 1 批计划工具 + 最多 5 轮 LLM 追加（`MAX_ITERATIONS=6`），最多 12 次调用、单工具超时 60s；多股票比较按股票逐只调用，结果按键区分（`predict_stock:600519`） |
@@ -187,10 +187,10 @@ evidence=5 evidence_ok=True elapsed=33.8s
 | Hybrid (RRF k=60) | 0.3586 | 0.4990 | 0.3611 | 0.5707 | 0.4896 | 43 ms |
 | **Hybrid + Reranker** | **0.4492** | **0.5370** | **0.4222** | **0.6636** | **0.6044** | 441 ms |
 
-> **协议修正（重要）**：早期版本的评测脚本里，BM25/Dense 只取 10 个 chunk 而 Hybrid 取 20+20 融合 15，
+> **协议修正（重要）**：修正前的评测脚本中，BM25/Dense 只取 10 个 chunk 而 Hybrid 取 20+20 融合 15，
 > 由于指标按文档去重计算，**各配置的预算并不相等**。修正后四种配置统一 `final-k=20`。
 > 修正前后的数字**不可直接比较**（属于评测协议变更，不是检索效果变化）：
-> 旧表见 `docs/evaluation_before_fix.md`，新表见 `docs/evaluation_after_fix.md`。
+> 修正前结果见 `docs/evaluation_before_fix.md`，修正后结果见 `docs/evaluation_after_fix.md`。
 
 ### RRF 参数：敏感性分析后保持默认（k=60 + 等权）
 
@@ -263,14 +263,14 @@ app/
 ├── rag/               sources(东财/cninfo) · cleaner · chunker · ingestion
 │                      embedding(BGE-M3) · vector_store(Qdrant) · bm25 · hybrid
 │                      reranker · retrieval · indexing · eval_metrics · migrate
-├── quant/             因子 / 预测 / 评分 / 排名（纯逻辑，源自早期版本）
+├── quant/             因子计算 / 模型推理 / 综合评分 / 股票排名
 ├── services/          Stock / Prediction 服务契约（API 与工具共用）
 └── schemas/           Pydantic 输出契约
 scripts/               抓取/建库 ingest_* · build_embeddings · build_bm25 · build_eval_set · purge_documents
                        评测 evaluate_retrieval · grid_rrf · bench_retrieval
                        入口 ask · search_chunks · search_hybrid
                        运维 update_daily · rebuild_factors · predict_latest · migrate_qdrant
-                       审计/工具 scan_publish_ts · verify_consistency · legacy_baseline_runner · init_db · backfill_publish_ts
+                       审计/工具 scan_publish_ts · verify_consistency · init_db · backfill_publish_ts
 frontend/              单页 UI（无框架、无 CDN）
 docker/                Dockerfile(CPU) · Dockerfile.gpu · docker-compose.yml
 docs/                  技术说明与离线实验材料（时区语义 / BM25 一致性 / RRF 实验 / 评测对照）
@@ -300,10 +300,10 @@ data/eval/             冻结的评测集与实验结果
 4. 大年报正文在清洗阶段截断于 20 万字符：当前语料 **64 篇公告**受影响（全部为公告，新闻 0 篇）。
 5. 评测集 36 题，类别样本偏小；标签来源偏词面。
 6. **本地模式陷阱**：不显式设置 `QDRANT_URL` 时，宿主脚本与本地 API 会**静默**切到本地模式
-   `data/qdrant`，而那份旧副本同样含 109,554 点——靠点数分辨不出两个库，日期过滤可能直接 0 命中。
+   `data/qdrant`，而该本地副本同样含 109,554 点——靠点数分辨不出两个库，日期过滤可能直接 0 命中。
    容器内由 compose 的 `environment` 覆盖（始终为 `http://qdrant:6333`）；宿主侧请在运行时显式设置，
    **暂不要写进 `.env`**：`ChunkVectorStore._build_client` 目前会让该变量覆盖显式传入的 `path=`，
-   会误伤迁移工具的本地源、本地基准列与向量相关单元测试（详见 `.env.example` 内注释）。
+   会影响向量库迁移工具的本地源、本地基准列与向量相关单元测试（详见 `.env.example` 内注释）。
 
 7. **工具超时是"放弃等待"而不是"杀死调用"**：单个工具超过 60s 时，Agent 会立即拿到结构化
    `ToolTimeout` 并继续，但 Python 无法安全终止运行中的线程，被放弃的调用仍会在后台跑到自身
