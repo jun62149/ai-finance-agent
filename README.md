@@ -92,7 +92,7 @@ flowchart TB
 ## 快速开始
 
 ### 方式一：Docker（Qdrant + API + UI）
-![ Docker 一键启动 ]( docs/screenshots/03-docker.png )
+![ Docker 一键启动 ]( assets/screenshots/03-docker.png )
 ```bash
 # 只在没有 .env 时复制：直接覆盖会清掉已填好的 LLM_API_KEY
 [ -f .env ] || cp .env.example .env
@@ -149,7 +149,7 @@ evidence=5 evidence_ok=True elapsed=33.8s
 ```
 
 生成报告的真实片段（体现"可信"而不是"能聊"）：
-![ Agent 问答与证据来源 ]( docs/screenshots/01-chat.png )
+![ Agent 问答与证据来源 ]( assets/screenshots/01-chat.png )
 > **重要前置说明：量化数据的基准日（2026-06-24）早于检索到的多条新闻/公告时间（最晚 2026-08-31）。
 > 两者不是同一时点，不能直接拼接为"当前状态"。**
 >
@@ -161,7 +161,7 @@ evidence=5 evidence_ok=True elapsed=33.8s
 ---
 
 ## 检索评测（P9）
-![ 离线检索评测与测试 ]( docs/screenshots/02-eval.png )
+![ 离线检索评测与测试 ]( assets/screenshots/02-eval.png )
 **评测集**：36 题 / 373 条标注文档，覆盖 5 类查询（股票代码 / 公司简称 / 日期约束 /
 公告类型与法律术语 / 语义事件问句）。标签由显式规格（股票 + 类型 + 日期窗口 + 标题关键词）
 从数据库解析后**冻结**，评测时不再重新推导。
@@ -190,7 +190,7 @@ evidence=5 evidence_ok=True elapsed=33.8s
 > **协议修正（重要）**：修正前的评测脚本中，BM25/Dense 只取 10 个 chunk 而 Hybrid 取 20+20 融合 15，
 > 由于指标按文档去重计算，**各配置的预算并不相等**。修正后四种配置统一 `final-k=20`。
 > 修正前后的数字**不可直接比较**（属于评测协议变更，不是检索效果变化）：
-> 修正前结果见 `docs/evaluation_before_fix.md`，修正后结果见 `docs/evaluation_after_fix.md`。
+> 上表展示修正后的统一预算结果。
 
 ### RRF 参数：敏感性分析后保持默认（k=60 + 等权）
 
@@ -201,7 +201,7 @@ evidence=5 evidence_ok=True elapsed=33.8s
   且使最终带 reranker 的 **R@10 下降 0.038** —— 默认参数在**跨场景与 reranker 流水线下更稳定**；
 - 分析还给出两个结构性结论：**等权时 `k` 只改变融合顺序、不改变候选集合**，对带 reranker 的最终结果无影响；
   **加权会改变候选集合**，能提升 MRR/NDCG（排序质量）但降低 R@10（召回覆盖）；
-- 完整 12 格数据、2-fold 表、决策规则与局限声明见 `docs/rrf_parameter_experiment.md`。
+- 参数实验可通过 `scripts/grid_rrf.py` 复现，完整结果输出至 `data/eval/`。
 
 ### 结论（含反直觉处）
 
@@ -273,7 +273,7 @@ scripts/               抓取/建库 ingest_* · build_embeddings · build_bm25 
                        审计/工具 scan_publish_ts · verify_consistency · init_db · backfill_publish_ts
 frontend/              单页 UI（无框架、无 CDN）
 docker/                Dockerfile(CPU) · Dockerfile.gpu · docker-compose.yml
-docs/                  技术说明与离线实验材料（时区语义 / BM25 一致性 / RRF 实验 / 评测对照）
+assets/screenshots/    README 效果截图
 data/eval/             冻结的评测集与实验结果
 ```
 

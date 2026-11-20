@@ -38,14 +38,7 @@ models/**/*.pkl
 # in the working tree; they are simply untracked (no git backup).
 # ---------------------------------------------------------------------------
 reports/
-docs/OPENING_PROMPT.md
-docs/CONTEXT_HANDOFF.md
-docs/R1.md
-docs/R2.md
-docs/R3.md
-docs/TODO.md
-docs/phase0_report.md
-docs/archive/
+/docs/
 data/_phase0_*.json
 
 # IDE / OS
